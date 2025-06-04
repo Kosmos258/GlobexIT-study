@@ -1,0 +1,121 @@
+.all-employees-tab {
+  position: relative;
+  padding: 1.5rem;
+}
+
+.header1 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.searchbar {
+  margin: 16px 0;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  width: 300px;
+  font-size: 1rem;
+}
+
+/* Новые стили для фильтров по подразделениям */
+.filters {
+  margin-bottom: 1rem;
+}
+
+.filters__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+/* Список сотрудников */
+.employees-tab__list {
+  list-style: none;
+  padding: 0;
+}
+
+.employees-tab__item {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.75rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.employees-tab__name {
+  flex-grow: 1;
+  font-size: 1.1rem;
+}
+
+.employees-tab__add {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  background-color: #1890ff;
+  border: none;
+  color: white;
+  border-radius: 4px;
+}
+
+.employees-tab__add:hover {
+  background-color: #40a9ff;
+}
+
+.employees-tab__empty {
+  padding: 1rem;
+  color: #888;
+  text-align: center;
+}
+
+/* Уведомление об успешном добавлении */
+.success-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background-color: #52c41a; /* зелёный фон */
+  color: white;
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-size: 1rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+}
+
+/* Модальное окно */
+.modal-overlay {
+  position: fixed; /* фиксируем по всей области экрана */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000; /* достаточно высокий, чтобы не скрываться за другими элементами */
+}
+
+.modal-content {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  max-width: 600px;
+  width: 90%;
+  position: relative;
+}
+
+.modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.filters__item {
+  cursor: pointer;
+}

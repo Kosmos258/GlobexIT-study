@@ -1,0 +1,19 @@
+<%
+/*<script>*/
+function GetParam(name) {
+    return tools_web.get_web_param( curParams, name, 0, 0 );
+}
+
+var sHtmlMainPage = LoadFileData(UrlToFilePath('x-local://wt/web/adaptation_test/collaborators/frontend/dist/index.html'))
+
+%>
+
+<script>
+	window._app = {
+        backendID: '<%=OptInt(GetParam("BACKEND_ID"))%>'
+	}
+</script>
+
+<%
+	Response.Write(sHtmlMainPage)
+%>

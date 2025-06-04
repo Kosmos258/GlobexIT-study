@@ -1,0 +1,202 @@
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+ul {
+  list-style-type: none;
+}
+
+.header1 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.searchbar {
+  margin: 32px 0;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  width: 300px;
+  color: black !important;
+  background-color: white !important;
+}
+
+.error-banner {
+  background-color: rgb(177, 177, 177);
+  color: black;
+  padding: 10px;
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 4px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  min-width: 320px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+
+  &__text {
+    flex-grow: 1;
+    font-size: 16px;
+  }
+}
+
+/* Стили для AllEmployeesTab */
+.employees-tab__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.employees-tab__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.employees-tab__add {
+  margin-left: 1rem;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  background-color: #52c41a;
+  border: none;
+  color: white;
+  border-radius: 4px;
+}
+
+.employees-tab__add:hover {
+  background-color: #73d13d;
+}
+
+.employees-tab__empty {
+  padding: 1rem;
+  color: #888;
+}
+
+/* Стили для TeamCollaboratorTab */
+.team-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.team-list__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.team-list__remove-button {
+  margin-left: 1rem;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  background-color: #ff4d4f;
+  border: none;
+  color: white;
+  border-radius: 4px;
+}
+
+.team-list__remove-button:hover {
+  background-color: #ff7875;
+}
+
+.team-tab__message {
+  padding: 1rem;
+  color: #888;
+}
+
+/* Стили для DepartmentTab */
+.department-tab {
+  text-align: left;
+  padding: 1rem;
+}
+
+.department-tab__tree {
+  list-style: none;
+  padding-left: 0;
+}
+
+.department-tab__node {
+  margin: 0.25rem 0;
+}
+
+.department-tab__node-header {
+  display: flex;
+  align-items: center;
+}
+
+.department-tab__node-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.department-tab__toggle-icon {
+  display: inline-block;
+  width: 1rem;
+  text-align: center;
+  margin-right: 0.5rem;
+}
+
+.department-tab__toggle-icon-empty {
+  display: inline-block;
+  width: 1rem;
+  margin-right: 0.5rem;
+}
+
+.employees-tab__name {
+  font-size: 1.6rem;
+}
+
+.department-tab__select-btn {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  background-color: #1890ff;
+  border: none;
+  color: white;
+  border-radius: 4px;
+}
+
+.department-tab__select-btn:hover {
+  background-color: #40a9ff;
+}
+
+.department-tab__node-children {
+  list-style: none;
+  padding-left: 1.5rem;
+}
+
+.department-tab__employees {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-top: 1px solid #e0e0e0;
+}
+
+/* Стили для правой колонки (сотрудники) */
+.department-tab__employees-title {
+  font-size: 1.6rem;
+  margin-bottom: 2.75rem !important;
+  color: #333;
+}
+
+.department-tab__emp-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.department-tab__emp-item {
+  padding: 0.5rem 0;
+}

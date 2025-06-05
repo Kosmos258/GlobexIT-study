@@ -1,0 +1,14 @@
+{
+	"basePaths": {
+	  "entry": "src",
+	  "build": "build"
+	},
+	"excludePaths": ["**/test.ts"],
+	"filePatterns": { 
+	  "ts": ["**/globex_backend.ts"],
+	  "other": ["**/*.js", "**/*.bs", "**/*.html"]
+	},
+	"work_mode": "custom_web_template",
+	"is_file": true,
+	"is_need_deploy": false
+}

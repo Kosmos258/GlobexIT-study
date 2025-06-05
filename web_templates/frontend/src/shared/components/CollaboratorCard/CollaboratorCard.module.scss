@@ -1,0 +1,22 @@
+.collaborator__card {
+    min-width: 250px;
+
+    background-color: #eee;
+    border-radius: 20px;
+    color: #111;
+
+    display: flex;
+    flex-direction: column;
+
+    border: 2px #61dafbaa solid;
+
+    transition: all ease-in-out 0.15s;
+
+    &:hover {
+        transform: translateY(-5px);
+        filter: drop-shadow(0 0 0.5em #61dafbaa);
+    }
+
+
+    // .collaborator__id {}
+}

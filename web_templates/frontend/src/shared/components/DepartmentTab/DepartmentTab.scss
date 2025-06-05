@@ -1,0 +1,160 @@
+.department-tab {
+  display: flex;
+  gap: 2rem;
+  padding: 1.5rem;
+  font-family: Arial, sans-serif;
+}
+
+.department-tab--container {
+  align-items: flex-start;
+}
+
+/* Левая колонка: дерево подразделений */
+.department-tab__left {
+  flex: 1;
+}
+
+/* Правая колонка: превью сотрудников */
+.department-tab__right {
+  flex: 1;
+  padding: 1rem;
+  border-left: 2px solid #e0e0e0;
+}
+
+.department-tab__hover-message {
+  font-size: 1.2rem;
+  color: #666;
+  margin-top: 2rem;
+}
+
+/* Поиск сверху */
+.department-tab__search {
+  margin-bottom: 1rem;
+}
+
+.department-tab__search-input {
+  width: 100%;
+  max-width: 400px;
+  padding: 10px 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1.2rem;
+  color: black !important;
+}
+
+/* Стили дерева */
+.department-tab__tree {
+  list-style: none;
+  padding-left: 0;
+  margin-top: 0;
+}
+
+.department-tab__node {
+  margin: 0.75rem 0;
+}
+
+/* Заголовок узла: содержит кнопку toggle и название */
+.department-tab__node-header {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 1.6rem;
+  color: #333;
+  transition: background-color 0.2s;
+}
+
+.department-tab__node-header--selected {
+  background-color: #afb3b5;
+}
+
+/* Кнопка раскрытия */
+.department-tab__toggle-button {
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  margin-right: 0.75rem;
+  cursor: pointer;
+  transform: rotate(0deg);
+  transition: transform 0.2s ease-in-out, color 0.2s;
+  color: #555;
+}
+
+.department-tab__toggle-button--expanded {
+  transform: rotate(90deg);
+  color: #1890ff;
+}
+
+/* Название узла */
+.department-tab__node-name {
+  // font-size: 1.6rem;
+  line-height: 1.2;
+}
+
+/* Вложенные узлы (отступ) */
+.department-tab__node-children {
+  list-style: none;
+  padding-left: 2rem;
+  margin-top: 0.5rem;
+}
+
+/* Быстрее отличать выбранный узел */
+.department-tab__node-header--selected .department-tab__node-name {
+  font-weight: bold;
+  color: #1890ff;
+}
+
+.department-tab__no-employees {
+  font-style: italic;
+  color: #666;
+  font-size: 1.2rem;
+}
+
+.department-tab__emp-list {
+  list-style: none;
+  padding-left: 0;
+}
+
+.department-tab__emp-item {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 1.4rem;
+  cursor: default;
+  color: #333;
+}
+
+/* При наведении подчёркиваем имя */
+.department-tab__emp-item:hover {
+  text-decoration: underline;
+  color: #1890ff;
+}
+
+/* Стили для ошибок */
+.error-banner {
+  background-color: rgb(177, 177, 177);
+  color: black;
+  padding: 12px;
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 4px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  min-width: 320px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+
+  &__text {
+    flex-grow: 1;
+    font-size: 1rem;
+  }
+}
+
+.department-tab__message {
+  font-size: 1.2rem;
+  color: #888;
+  padding: 1.5rem 0;
+  text-align: center;
+}

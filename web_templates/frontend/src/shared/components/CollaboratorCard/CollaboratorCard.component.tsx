@@ -1,5 +1,5 @@
 import { Card } from "antd";
-import { ISubdivision } from "../../../shared/types/subdivision/subdivision";
+import { ISubdivision } from "../../types/subdivision/subdivision";
 import "../../../shared/components/CollaboratorCard/CollaboratorCard.module.scss"
 
 export const CollaboratorCard = ({ id, name, code, org_name } : ISubdivision) => {

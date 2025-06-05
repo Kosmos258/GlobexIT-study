@@ -6,7 +6,7 @@ import {
   StateHistory,
   Department,
 } from "../../types/employees/types";
-import EmployeeModal from "../../components/AllEmployeesTab/EmployeeModal";
+import EmployeeModal from "./EmployeeModal";
 import "./AllEmployeesTab.scss";
 
 type Props = {

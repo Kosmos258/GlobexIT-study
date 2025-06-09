@@ -1,0 +1,14 @@
+{
+	"basePaths": {
+		"entry": "src",
+		"build": "build"
+	},
+	"excludePaths": ["**/test.ts", "**/types.ts"],
+	"filePatterns": {
+		"ts": ["**/*.ts"],
+		"other": ["**/*.js", "**/*.bs", "**/*.html"]
+	},
+	"work_mode": "system_object",
+	"is_file": true,
+	"is_need_deploy": false
+}

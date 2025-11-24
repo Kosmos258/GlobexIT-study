@@ -17,9 +17,9 @@ declare const StrLowerCase: (s: string) => string;
 declare const StrContains: (str: string, substr: string) => boolean;
 declare const Sleep: (ms: number) => void;
 declare const Date: () => string;
+declare const ArrayOptFirstElem: (arr: any[]) => any;
 
 const FILE_IMPORT = OptInt(Param.FILE_IMPORT);
-const IS_DEBUG = tools_web.is_true(true);
 
 interface IColl {
 	code: string;
@@ -30,12 +30,6 @@ interface IColl {
 	sex: string;
 	position_name: string;
 }
-
-const logConfig = {
-	code: "globex_log",
-	type: "AGENT",
-	agentId: "",
-};
 
 function loadExcel(sFileUrl: string) {
 	try {
@@ -74,83 +68,40 @@ function getCellName(columnNum: number, rowNum: number): string {
 	}
 }
 
-function log(message: any, type?: string) {
-	type = IsEmptyValue(type) ? "INFO" : StrUpperCase(type!);
+const GLOBAL = {
+	IS_DEBUG: tools_web.is_true(Param.IS_DEBUG),
+};
+
+const logConfig = {
+	code: "globex_log",
+	type: "AGENT",
+	agentId: "",
+};
+
+EnableLog(logConfig.code, GLOBAL.IS_DEBUG);
+
+/**
+ * Вывод сообщения в журнал
+ * @param {string} message - Сообщение
+ * @param {string} type - Тип сообщения info/error
+ */
+function log(message: string, type?: string) {
+	type = IsEmptyValue(type) ? "INFO" : StrUpperCase(type);
 
 	if (
-		ObjectType(message) === "JsObject" ||
-		ObjectType(message) === "JsArray" ||
-		ObjectType(message) === "XmLdsSeq"
+		ObjectType(message) === "JsObject"
+		|| ObjectType(message) === "JsArray"
+		|| ObjectType(message) === "XmLdsSeq"
 	) {
 		message = tools.object_to_text(message, "json");
 	}
 
-	const logStr = `[${type}][${logConfig.type}][${logConfig.agentId}]: ${message}`;
-
+	const log = `[${type}][${logConfig.type}][${logConfig.agentId}]: ${message}`;
 	if (LdsIsServer) {
-		LogEvent(logConfig.code, logStr);
-	} else if (IS_DEBUG) {
+		LogEvent(logConfig.code, log);
+	} else if (GLOBAL.IS_DEBUG) {
 		// eslint-disable-next-line no-alert
-		alert(logStr);
-	}
-}
-
-function createPersonCard(cardData: IColl): void {
-	try {
-		const newCollabDoc = tools.new_doc_by_name("collaborator", false);
-		newCollabDoc.BindToDb();
-
-		newCollabDoc.TopElem.code = cardData.code;
-		newCollabDoc.TopElem.login = cardData.login;
-		newCollabDoc.TopElem.lastname = cardData.lastname;
-		newCollabDoc.TopElem.middlename = cardData.middlename;
-		newCollabDoc.TopElem.firstname = cardData.firstname;
-		newCollabDoc.TopElem.sex = cardData.sex;
-
-		newCollabDoc.TopElem.position_name = cardData.position_name;
-
-		newCollabDoc.Save();
-		const collaboratorId = newCollabDoc.TopElem.id;
-
-		log(
-			`Создан сотрудник: ${cardData.lastname} (ID: ${collaboratorId})`,
-			"info",
-		);
-
-		if (cardData.position_name !== "") {
-			try {
-				const newPosDoc = tools.new_doc_by_name("position", false);
-				newPosDoc.BindToDb();
-
-				newPosDoc.TopElem.name = cardData.position_name;
-				newPosDoc.TopElem.basic_collaborator_id = collaboratorId;
-				newPosDoc.TopElem.position_date = Date();
-
-				newPosDoc.Save();
-				const positionId = newPosDoc.TopElem.id;
-
-				log(
-					`Создана должность: ${cardData.position_name} (ID: ${positionId})`,
-					"info",
-				);
-
-				newCollabDoc.TopElem.position_id = positionId;
-				newCollabDoc.TopElem.position_name = newPosDoc.TopElem.name;
-				newCollabDoc.TopElem.position_date = newPosDoc.TopElem.position_date;
-
-				newCollabDoc.Save();
-			} catch (posError) {
-				log(
-					`Ошибка создания должности для ${cardData.lastname}: ${(posError as Error).message
-					}`,
-					"error",
-				);
-			}
-		}
-	} catch (e) {
-		throw new Error(
-			`Ошибка создания карточки для ${cardData.login}: ${(e as Error).message}`,
-		);
+		alert(log);
 	}
 }
 
@@ -189,15 +140,15 @@ function readExcel(sFileUrl: string) {
 				position_name = getVal(6);
 
 				if (
-					code === "" &&
-					login === "" &&
-					lastname === "" &&
-					firstname === ""
+					code === ""
+					&& login === ""
+					&& lastname === ""
+					&& firstname === ""
 				) {
 					bEmptyRows = true;
 				} else {
 					try {
-						createPersonCard({
+						createOrUpdatePersonCard({
 							code: code,
 							login: login,
 							lastname: lastname,
@@ -218,6 +169,128 @@ function readExcel(sFileUrl: string) {
 		}
 	} catch (e) {
 		throw Error("readExcel -> " + (e as Error).message);
+	}
+}
+
+function findCollaborator(code: string, login: string): any {
+	try {
+		const queryStr =
+			`for $elem in collaborators where $elem/code = '${code}' and $elem/login = '${login}' return $elem`;
+		const objArray = tools.xquery(queryStr);
+
+		const firstElem = ArrayOptFirstElem(objArray);
+
+		return firstElem;
+	} catch (e) {
+		throw Error("findCollaborator -> " + (e as Error).message);
+	}
+}
+
+function findPosition(collaboratorId: number): any {
+	try {
+		const queryStr = `for $elem in positions where $elem/basic_collaborator_id = ${collaboratorId} return $elem`;
+		const objArray = tools.xquery(queryStr);
+
+		return ArrayOptFirstElem(objArray);
+	} catch (e) {
+		throw Error("findPosition -> " + (e as Error).message);
+	}
+}
+
+function createOrUpdatePersonCard(cardData: IColl): void {
+	try {
+		const existingCollab = findCollaborator(cardData.code, cardData.login);
+
+		let collabDoc: any;
+		let collaboratorId: number;
+		let isNewCollab = false;
+
+		if (existingCollab != undefined) {
+			collabDoc = tools.open_doc(existingCollab.id);
+			collaboratorId = existingCollab.id;
+
+			log(
+				`Обновление сотрудника: ${cardData.lastname} (ID: ${collaboratorId})`,
+				"info",
+			);
+		} else {
+			collabDoc = tools.new_doc_by_name("collaborator", false);
+			collabDoc.BindToDb();
+			isNewCollab = true;
+
+			log(`Создание нового сотрудника: ${cardData.lastname}`, "info");
+		}
+
+		collabDoc.TopElem.code = cardData.code;
+		collabDoc.TopElem.login = cardData.login;
+		collabDoc.TopElem.lastname = cardData.lastname;
+		collabDoc.TopElem.middlename = cardData.middlename;
+		collabDoc.TopElem.firstname = cardData.firstname;
+		collabDoc.TopElem.sex = cardData.sex;
+		collabDoc.TopElem.position_name = cardData.position_name;
+
+		collabDoc.Save();
+
+		if (isNewCollab) {
+			collaboratorId = collabDoc.TopElem.id;
+			log(
+				`Создан сотрудник: ${cardData.lastname} (ID: ${collaboratorId})`,
+				"info",
+			);
+		}
+
+		if (cardData.position_name !== "") {
+			try {
+				const existingPosition = findPosition(collaboratorId);
+
+				let posDoc: any;
+				let positionId: number;
+
+				if (existingPosition != undefined) {
+					posDoc = tools.open_doc(existingPosition.id);
+					positionId = existingPosition.id;
+
+					log(
+						`Обновление должности для ${cardData.lastname} (ID: ${positionId})`,
+						"info",
+					);
+				} else {
+					posDoc = tools.new_doc_by_name("position", false);
+					posDoc.BindToDb();
+
+					log(`Создание новой должности для ${cardData.lastname}`, "info");
+				}
+
+				posDoc.TopElem.name = cardData.position_name;
+				posDoc.TopElem.basic_collaborator_id = collaboratorId;
+				posDoc.TopElem.position_date = Date();
+
+				posDoc.Save();
+
+				if (existingPosition == undefined) {
+					positionId = posDoc.TopElem.id;
+					log(
+						`Создана должность: ${cardData.position_name} (ID: ${positionId})`,
+						"info",
+					);
+				}
+
+				collabDoc.TopElem.position_id = positionId;
+				collabDoc.TopElem.position_name = posDoc.TopElem.name;
+				collabDoc.TopElem.position_date = posDoc.TopElem.position_date;
+
+				collabDoc.Save();
+			} catch (posError) {
+				log(
+					`Ошибка работы с должностью для ${cardData.lastname}: ${(posError as Error).message}`,
+					"error",
+				);
+			}
+		}
+	} catch (e) {
+		throw new Error(
+			`Ошибка обработки карточки для ${cardData.login}: ${(e as Error).message}`,
+		);
 	}
 }
 
@@ -263,9 +336,7 @@ function main() {
 }
 
 log("--- Начало. #55435 Агент импорта сотрудников из файла Excel ---");
-
 main();
-
 log("--- Конец. #55435 Агент импорта сотрудников из файла Excel ---");
 
-export { };
+export {};

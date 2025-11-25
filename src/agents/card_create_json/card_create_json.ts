@@ -1,13 +1,47 @@
+const GLOBAL = {
+	IS_DEBUG: tools_web.is_true(Param.IS_DEBUG),
+	parentSectionId: Trim(String(Param.parentSectionId)),
+};
+
 interface IError {
-  code: number;
-  message: string;
+	code: number;
+	message: string;
 }
 
 interface IJson {
-  name: string;
-  date: string;
-  desc: string;
-  group: string;
+	date: string;
+	name: string;
+	desc: string;
+	group: string;
+}
+
+interface Value {
+	Value: string;
+}
+
+interface AccessGroups {
+	Add: () => AccessGroups;
+	access_group: AccessGroups;
+	group_id: Value;
+}
+
+interface Access {
+	access_groups: AccessGroups;
+}
+
+interface TopElem {
+	name: Value;
+	text_area: Value;
+	create_date: Date;
+	access: Access;
+	parent_document_id: Value;
+	id: number;
+}
+
+interface DocType {
+	TopElem: TopElem;
+	BindToDb: () => void;
+	Save: () => void;
 }
 
 /**
@@ -15,13 +49,12 @@ interface IJson {
  * @param {string} source - источник ошибки
  * @param {object} errorObject - объект ошибки
  */
-function HttpError(source: string, errorObject: IError) {
+function HttpError(source: string, errorObject: IError): never {
 	throw new Error(source + " -> " + errorObject.message);
 }
 
 /**
  * Читает данные из JSON файла
- * @param {string} filePath - путь к файлу JSON
  * @returns {IJson[]} массив данных из JSON
  */
 function readJSONFile(): IJson[] {
@@ -31,7 +64,10 @@ function readJSONFile(): IJson[] {
 		);
 
 		if (jsonData === undefined || jsonData === null) {
-			throw new Error("Не удалось прочитать данные из JSON файла");
+			HttpError("notFoundJSONFile", {
+				code: 400,
+				message: "Файл JSON не найден",
+			});
 		}
 
 		log(
@@ -41,7 +77,10 @@ function readJSONFile(): IJson[] {
 
 		return jsonData;
 	} catch (error) {
-		HttpError("readJSONFile", error);
+		HttpError("readJSONFile", {
+			code: 500,
+			message: error instanceof Error ? error.message : String(error),
+		});
 	}
 }
 
@@ -52,29 +91,22 @@ function readJSONFile(): IJson[] {
  */
 function createPortalCard(cardData: IJson, parentSectionId?: string): void {
 	try {
-		const newCard = tools.new_doc_by_name("document", false);
+		const newCard = tools.new_doc_by_name<DocType>("document");
 
 		newCard.BindToDb();
 
-		newCard.TopElem.name = cardData.name;
-		newCard.TopElem.text_area = cardData.desc;
+		newCard.TopElem.name.Value = cardData.name;
+		newCard.TopElem.text_area.Value = cardData.desc;
 
-		if (cardData.date) {
-			newCard.TopElem.doc_info.creation.date = cardData.date;
-		}
+		newCard.TopElem.create_date = Date();
 
 		if (cardData.group) {
-			const accessGroup =
-        newCard.TopElem.access.access_groups.access_group.Add();
-			accessGroup.group_id = cardData.group;
+			const accessGroup = newCard.TopElem.access.access_groups.access_group.Add();
+			accessGroup.group_id.Value = cardData.group;
 		}
 
-		if (
-			parentSectionId !== undefined &&
-      parentSectionId !== null &&
-      parentSectionId !== ""
-		) {
-			newCard.TopElem.parent_document_id = parentSectionId;
+		if (!IsEmptyValue(parentSectionId)) {
+			newCard.TopElem.parent_document_id.Value = parentSectionId;
 		}
 
 		newCard.Save();
@@ -84,18 +116,19 @@ function createPortalCard(cardData: IJson, parentSectionId?: string): void {
 			"info",
 		);
 	} catch (error) {
-		HttpError("createPortalCard", error);
+		HttpError("createPortalCard", {
+			code: 500,
+			message: error instanceof Error ? error.message : String(error),
+		});
 	}
 }
 
 function main() {
 	try {
 		const jsonData = readJSONFile();
-		const parentSectionId = "0x5F77063758493DDB";
+		const parentSectionId = GLOBAL.parentSectionId;
 
-		for (let i = 0; i < jsonData.length; i++) {
-			const cardData = jsonData[i];
-
+		for (const cardData of jsonData) {
 			createPortalCard(cardData, parentSectionId);
 		}
 	} catch (error) {
@@ -103,14 +136,10 @@ function main() {
 	}
 }
 
-const GLOBAL = {
-	IS_DEBUG: tools_web.is_true(Param.IS_DEBUG),
-};
-
 const logConfig = {
 	code: "globex_log",
 	type: "AGENT",
-	agentId: "",
+	agentId: "7220634631655119450",
 };
 
 EnableLog(logConfig.code, GLOBAL.IS_DEBUG);
@@ -124,9 +153,9 @@ function log(message: string, type?: string) {
 	type = IsEmptyValue(type) ? "INFO" : StrUpperCase(type);
 
 	if (
-		ObjectType(message) === "JsObject" ||
-    ObjectType(message) === "JsArray" ||
-    ObjectType(message) === "XmLdsSeq"
+		ObjectType(message) === "JsObject"
+		|| ObjectType(message) === "JsArray"
+		|| ObjectType(message) === "XmLdsSeq"
 	) {
 		message = tools.object_to_text(message, "json");
 	}

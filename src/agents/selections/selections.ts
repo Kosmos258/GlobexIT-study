@@ -25,7 +25,7 @@ try {
 		id: RValue(item.id),
 		person_fullname: RValue(item.person_fullname),
 		person_position: RValue(item.person_position),
-		status: item.status === "passed" ? "Пройдена" : RValue(item.status),
+		status: RValue(item.status),
 	}));
 
 	RESULT = result;

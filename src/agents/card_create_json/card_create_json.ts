@@ -1,6 +1,6 @@
 const GLOBAL = {
 	IS_DEBUG: tools_web.is_true(Param.IS_DEBUG),
-	parentSectionId: Trim(String(Param.parentSectionId)),
+	parentSectionId: OptInt(Param.parentSectionId),
 };
 
 interface IError {
@@ -13,35 +13,6 @@ interface IJson {
 	name: string;
 	desc: string;
 	group: string;
-}
-
-interface Value {
-	Value: string;
-}
-
-interface AccessGroups {
-	Add: () => AccessGroups;
-	access_group: AccessGroups;
-	group_id: Value;
-}
-
-interface Access {
-	access_groups: AccessGroups;
-}
-
-interface TopElem {
-	name: Value;
-	text_area: Value;
-	create_date: Date;
-	access: Access;
-	parent_document_id: Value;
-	id: number;
-}
-
-interface DocType {
-	TopElem: TopElem;
-	BindToDb: () => void;
-	Save: () => void;
 }
 
 /**
@@ -64,7 +35,7 @@ function readJSONFile(): IJson[] {
 		);
 
 		if (jsonData === undefined || jsonData === null) {
-			HttpError("notFoundJSONFile", {
+			HttpError("readJSONFile", {
 				code: 400,
 				message: "Файл JSON не найден",
 			});
@@ -89,20 +60,20 @@ function readJSONFile(): IJson[] {
  * @param {IJson} cardData - данные карточки из JSON
  * @param {string} parentSectionId - ID родительского раздела портала
  */
-function createPortalCard(cardData: IJson, parentSectionId?: string): void {
+function createPortalCard(cardData: IJson, parentSectionId: number): void {
 	try {
-		const newCard = tools.new_doc_by_name<DocType>("document");
+		const newCard = tools.new_doc_by_name<DocumentDocument>("document");
 
 		newCard.BindToDb();
 
 		newCard.TopElem.name.Value = cardData.name;
 		newCard.TopElem.text_area.Value = cardData.desc;
 
-		newCard.TopElem.create_date = Date();
+		newCard.TopElem.create_date.Value = Date();
 
 		if (cardData.group) {
-			const accessGroup = newCard.TopElem.access.access_groups.access_group.Add();
-			accessGroup.group_id.Value = cardData.group;
+			const accessGroup = newCard.TopElem.access.access_groups.Add();
+			accessGroup.group_id.Value = OptInt(cardData.group);
 		}
 
 		if (!IsEmptyValue(parentSectionId)) {

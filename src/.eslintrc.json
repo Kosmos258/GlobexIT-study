@@ -23,7 +23,7 @@
     "no-multiple-empty-lines": "warn",
     "no-multi-spaces": "warn",
     "no-lonely-if": "warn",
-    "comma-dangle": ["warn", "never"],
+    "comma-dangle": ["warn", "always-multiline"],
     "comma-spacing": ["warn", { "before": false, "after": true }],
     "line-comment-position": ["warn", { "ignorePattern": "." }],
     "lines-around-comment": ["warn", { "beforeBlockComment": true }],
@@ -47,7 +47,7 @@
     "space-before-function-paren": ["warn", "never"],
     "allowAllPropertiesOnSameLine": "off",
     "object-property-newline": "warn",
-    "no-alert": "error",
+    "no-alert": "off",
     "no-eval": "error"
   }
 }

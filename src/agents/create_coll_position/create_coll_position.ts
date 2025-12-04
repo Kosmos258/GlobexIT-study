@@ -64,114 +64,116 @@ function loadExcel(sFileUrl: string) {
 		const filePath = UrlToFilePath(sFileUrl);
 		const oExcelDoc = tools.get_object_assembly("Excel");
 		oExcelDoc.Open(filePath);
-		log(`loadExcel: Файл открыт`, "info");
 
 		const worksheet = oExcelDoc.GetWorksheet(0);
-		log(`loadExcel: Worksheet получен`, "info");
 
 		const cells = worksheet.Cells;
 
 		return cells;
 	} catch (e) {
-		throw HttpError("loadExcel ", {
-			code: 404,
+		HttpError("loadExcel ", {
+			code: 500,
 			message: `Ошибка загрузки файла Excel: ${e.message}`,
 		});
 	}
 }
 
 /**
- * Функция преобразует числовые индексы колонки и строки в адрес Excel (например A1, C5, AA10)
- * @param {number} columnNum - индекс столбца (0-based)
- * @param {number} rowNum - индекс строки (0-based)
+ * Функция получает значение ячейки по индексам строки и столбца
+ * @param {any} cells - объект ячеек Excel
+ * @param {number} row - индекс строки (0-based)
+ * @param {number} col - индекс столбца (0-based)
+ * @returns {string} - значение ячейки или пустая строка
  */
-function getCellName(columnNum: number, rowNum: number): string {
+function getCellValue(cells: any, row: number, col: number): string {
 	try {
-		if (columnNum < 0 || rowNum < 0) {
+		if (col < 0 || row < 0) {
 			return "";
 		}
 
-		let result = "";
-		let index = columnNum;
+		let columnName = "";
+		let index = col;
 		let remainder;
 
 		while (index >= 0) {
 			remainder = index % 26;
-			result = String.fromCharCode(65 + remainder) + result;
+			columnName = String.fromCharCode(65 + remainder) + columnName;
 			index = OptInt(index / 26) - 1;
 		}
 
-		return result + (rowNum + 1);
+		const cellAddress = columnName + (row + 1);
+
+		const cell = cells.GetCell(cellAddress);
+
+		if (cell == undefined) return "";
+
+		const val = cell.Value;
+
+		if (val == null) return "";
+
+		const strVal = Trim(String(val));
+
+		if (strVal === "undefined") return "";
+
+		return strVal;
 	} catch (e) {
-		throw HttpError("getCellName ", {
+		HttpError("getCellValue", {
 			code: 404,
-			message: "Ошибка получения ячеек таблицы",
+			message: `Ошибка получения значения ячейки [${row}, ${col}]: ${e.message}`,
 		});
+
+		return "";
 	}
-}
-
-function getCellValue(cells: any, row: number, col: number): string {
-	const cell = cells.GetCell(getCellName(col, row));
-
-	if (cell == undefined) return "";
-
-	const val = cell.Value;
-
-	if (val == null) return "";
-
-	const strVal = Trim(String(val));
-
-	if (strVal === "undefined") return "";
-
-	return strVal;
 }
 
 function readExcel(sFileUrl: string) {
 	try {
 		const _cells = loadExcel(sFileUrl);
-		const bEmptyRows = false;
 
 		if (!_cells) {
-			throw HttpError("readExcel ", {
-				code: 404,
+			HttpError("readExcel", {
+				code: 500,
 				message: "Не удалось получить таблицу: readExcel()",
 			});
 		}
 
 		let row = 1;
-
 		let codeExcel;
-		let person: IColl;
+		let personData: IColl;
 
-		while (!bEmptyRows) {
+		// eslint-disable-next-line no-constant-condition
+		while (true) {
 			codeExcel = getCellValue(_cells, row, 0);
 
-			if (codeExcel === "" || codeExcel === "undefined") break;
-
-			person = {
-				code: getCellValue(_cells, row, 0),
-				login: getCellValue(_cells, row, 1),
-				lastname: getCellValue(_cells, row, 2),
-				firstname: getCellValue(_cells, row, 3),
-				middlename: getCellValue(_cells, row, 4),
-				sex: getCellValue(_cells, row, 5),
-				position_name: getCellValue(_cells, row, 6),
-			};
+			if (!codeExcel) {
+				break;
+			}
 
 			try {
-				createOrUpdatePersonCard(person);
+				personData = {
+					code: codeExcel,
+					login: getCellValue(_cells, row, 1),
+					lastname: getCellValue(_cells, row, 2),
+					firstname: getCellValue(_cells, row, 3),
+					middlename: getCellValue(_cells, row, 4),
+					sex: getCellValue(_cells, row, 5),
+					position_name: getCellValue(_cells, row, 6),
+				};
+
+				createOrUpdatePersonCard(personData);
 			} catch (err) {
-				throw HttpError("readExcel ", {
-					code: 404,
+				HttpError("readExcel", {
+					code: 500,
 					message: `Ошибка в строке ${row}: ${err.message}`,
 				});
 			}
 
 			row++;
 		}
+
 	} catch (e) {
-		throw HttpError("readExcel ", {
-			code: 404,
+		HttpError("readExcel", {
+			code: 500,
 			message: `Ошибка чтения файла: ${e.message}`,
 		});
 	}
@@ -187,7 +189,7 @@ function findCollaborator(code: string, login: string): any {
 
 		return firstElem;
 	} catch (e) {
-		throw HttpError("findCollaborator ", {
+		HttpError("findCollaborator ", {
 			code: 404,
 			message: "Не найден сотрудник",
 		});
@@ -201,7 +203,7 @@ function findPosition(collaboratorId: number): any {
 
 		return ArrayOptFirstElem(objArray);
 	} catch (e) {
-		throw HttpError("findPosition ", {
+		HttpError("findPosition ", {
 			code: 404,
 			message: "Не найдена должность",
 		});
@@ -209,30 +211,37 @@ function findPosition(collaboratorId: number): any {
 }
 
 function createOrUpdateCollaborator(cardData: IColl) {
-	const existingCollab = findCollaborator(cardData.code, cardData.login);
+	try {
+		const existingCollab = findCollaborator(cardData.code, cardData.login);
 
-	let collabDoc: CollaboratorDocument;
+		let collabDoc: CollaboratorDocument;
 
-	if (existingCollab != undefined) {
-		collabDoc = tools.open_doc(existingCollab.id);
-	} else {
-		collabDoc = tools.new_doc_by_name("collaborator", false);
-		collabDoc.BindToDb();
+		if (existingCollab != undefined) {
+			collabDoc = tools.open_doc(existingCollab.id);
+		} else {
+			collabDoc = tools.new_doc_by_name("collaborator", false);
+			collabDoc.BindToDb();
+		}
+
+		const tecollabDoc = collabDoc.TopElem;
+
+		tecollabDoc.code.Value = cardData.code;
+		tecollabDoc.login.Value = cardData.login;
+		tecollabDoc.lastname.Value = cardData.lastname;
+		tecollabDoc.middlename.Value = cardData.middlename;
+		tecollabDoc.firstname.Value = cardData.firstname;
+		tecollabDoc.sex.Value = cardData.sex;
+		tecollabDoc.position_name.Value = cardData.position_name;
+
+		collabDoc.Save();
+
+		return collabDoc;
+	} catch (error) {
+		HttpError("createOrUpdateCollaborator ", {
+			code: 404,
+			message: "Не найден сотрудник",
+		});
 	}
-
-	const tecollabDoc = collabDoc.TopElem;
-
-	tecollabDoc.code.Value = cardData.code;
-	tecollabDoc.login.Value = cardData.login;
-	tecollabDoc.lastname.Value = cardData.lastname;
-	tecollabDoc.middlename.Value = cardData.middlename;
-	tecollabDoc.firstname.Value = cardData.firstname;
-	tecollabDoc.sex.Value = cardData.sex;
-	tecollabDoc.position_name.Value = cardData.position_name;
-
-	collabDoc.Save();
-
-	return collabDoc;
 }
 
 function createOrUpdatePosition(
@@ -240,35 +249,41 @@ function createOrUpdatePosition(
 	positionName: string,
 	lastname: string,
 ) {
-	const existingPosition = findPosition(collaboratorId);
+	try {
+		const existingPosition = findPosition(collaboratorId);
 
-	let posDoc: PositionDocument;
-	let positionId;
+		let posDoc: PositionDocument;
+		let positionId;
 
-	if (existingPosition != undefined) {
-		posDoc = tools.open_doc(existingPosition.id);
-		positionId = existingPosition.id;
-	} else {
-		posDoc = tools.new_doc_by_name("position", false);
-		posDoc.BindToDb();
-		log(`Создание новой должности для ${lastname}`, "info");
+		if (existingPosition != undefined) {
+			posDoc = tools.open_doc(existingPosition.id);
+			positionId = existingPosition.id;
+		} else {
+			posDoc = tools.new_doc_by_name("position", false);
+			posDoc.BindToDb();
+			log(`Создание новой должности для ${lastname}`, "info");
+		}
+
+		const tePosDoc = posDoc.TopElem;
+
+		tePosDoc.name.Value = positionName;
+		tePosDoc.position_date.Value = Date();
+
+		tePosDoc.basic_collaborator_id.Value = collaboratorId;
+
+		posDoc.Save();
+
+		if (existingPosition == undefined) {
+			positionId = tePosDoc.id;
+		}
+
+		return positionId;
+	} catch (error) {
+		HttpError("findPosition ", {
+			code: 404,
+			message: "Не найдена должность",
+		});
 	}
-
-	const tePosDoc = posDoc.TopElem;
-
-	tePosDoc.name.Value = positionName;
-	tePosDoc.position_date.Value = Date();
-
-	tePosDoc.basic_collaborator_id.Value = collaboratorId;
-
-	posDoc.Save();
-
-	if (existingPosition == undefined) {
-		positionId = tePosDoc.id;
-		log(`Создана должность: ${positionName} (ID: ${positionId})`, "info");
-	}
-
-	return positionId;
 }
 
 function createOrUpdatePersonCard(cardData: IColl) {
@@ -286,15 +301,10 @@ function createOrUpdatePersonCard(cardData: IColl) {
 			collabDoc.TopElem.position_name.Value = cardData.position_name;
 
 			collabDoc.Save();
-
-			log(
-				`Обновлена информация о должности в карточке сотрудника ${cardData.lastname}`,
-				"info",
-			);
 		}
 	} catch (e) {
-		throw HttpError("createOrUpdatePersonCard ", {
-			code: 404,
+		HttpError("createOrUpdatePersonCard ", {
+			code: 500,
 			message: `Ошибка обработки карточки для ${cardData.login}`,
 		});
 	}
@@ -303,15 +313,13 @@ function createOrUpdatePersonCard(cardData: IColl) {
 function main() {
 	try {
 		if (GLOBAL.FILE_IMPORT == undefined) {
-			throw HttpError("main ", {
-				code: 404,
+			HttpError("main ", {
+				code: 500,
 				message: "Ошибка: необходимо указать ссылку на файл в параметрах агента.",
 			});
 		}
 
-		const docImportFile = tools.open_doc(
-			GLOBAL.FILE_IMPORT,
-		) as ResourceDocument;
+		const docImportFile = tools.open_doc<ResourceDocument>(GLOBAL.FILE_IMPORT);
 
 		if (docImportFile == undefined) {
 			log("Ошибка: файл не найден в системе.", "error");
@@ -336,8 +344,8 @@ function main() {
 		readExcel(sTempFileUrl);
 	} catch (e) {
 		log(`Ошибка в main: ${e.message}`, "error");
-		throw HttpError("main ", {
-			code: 404,
+		HttpError("main ", {
+			code: 500,
 			message: `Выполнение прервано из-за ошибки: ${e.message}`,
 		});
 	}

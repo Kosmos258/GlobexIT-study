@@ -32,10 +32,10 @@ function selectOne<T>(query: string, defaultObj: any = undefined) {
 }
 
 try {
-	const personId = RValue(learningDoc.person_id.Value);
-	const finishedCourseState = RValue(learningDoc.state_id.Value);
+	const personId = learningDoc.person_id.Value;
+	const finishedCourseState = learningDoc.state_id.Value;
 
-	const allLearnings = selectAll<{ state_id: number; }>(`
+	const allLearnings = selectAll<{ state_id: XmlElem<number>; }>(`
 			SELECT 
                 course_id, 
                 course_name, 
@@ -45,7 +45,7 @@ try {
 		`);
 
 	const failedAttempts = allLearnings.filter(
-		(l) => OptInt(l.state_id) !== 4,
+		(l) => OptInt(l.state_id.Value) !== 4,
 	).length;
 
 	if (failedAttempts >= 3) {
@@ -62,7 +62,7 @@ try {
 		});
 	}
 
-	const newCourse = selectOne<{ id: number; }>(`
+	const newCourse = selectOne<{ id: XmlElem<number>; }>(`
 			SELECT 
                 id
 			FROM dbo.courses
@@ -71,7 +71,7 @@ try {
 			LIMIT 1;
 		`);
 
-	tools.activate_course_to_person(personId, newCourse.id);
+	tools.activate_course_to_person(personId, newCourse.id.Value);
 } catch (error) {
 	throw HttpError("Handler", {
 		code: 500,

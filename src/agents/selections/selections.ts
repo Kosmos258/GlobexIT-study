@@ -1,8 +1,8 @@
 interface Pers {
-	id: string;
-	person_fullname: string;
-	person_position: string;
-	status: string;
+	id: XmlElem<number>;
+	person_fullname: XmlElem<string>;
+	person_position: XmlElem<string>;
+	status: XmlElem<number>;
 }
 
 function selectAll<T>(query: string) {
@@ -11,21 +11,21 @@ function selectAll<T>(query: string) {
 
 try {
 	const getSQL = selectAll<Pers>(`
-            SELECT 
-                c.id, 
-                c.person_fullname, 
-                c.person_position, 
-                c.status
-            FROM dbo.career_reserves c
-            WHERE c.status = 'passed' 
-            AND c.position_type = 'adaptation';
+             SELECT 
+                crs.id, 
+                crs.person_fullname, 
+                crs.person_position, 
+                crs.status
+            FROM dbo.career_reserves crs
+            WHERE crs.status = 'passed' 
+            AND crs.position_type = 'adaptation';
     `);
 
-	const result: Pers[] = getSQL.map((item) => ({
-		id: RValue(item.id),
-		person_fullname: RValue(item.person_fullname),
-		person_position: RValue(item.person_position),
-		status: item.status === "passed" ? "Пройдена" : RValue(item.status),
+	const result = getSQL.map((item) => ({
+		id: item.id.Value,
+		person_fullname: item.person_fullname.Value,
+		person_position: item.person_position.Value,
+		status: item.status.Value,
 	}));
 
 	RESULT = result;
@@ -34,7 +34,5 @@ try {
 		MESSAGE;
 	}
 } catch (error) {
-	throw new Error(ERROR);
+	throw new Error(error.message);
 }
-
-alert(tools.object_to_text(RESULT, "json"));

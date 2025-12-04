@@ -50,8 +50,8 @@ function log(message: string, type?: string) {
 }
 
 interface InfoPers {
-	id?: string;
-	manager_id?: string;
+	id: XmlElem<number>;
+	manager_id: XmlElem<number>;
 }
 
 function selectAll<T>(query: string) {
@@ -60,26 +60,28 @@ function selectAll<T>(query: string) {
 
 function findAndSendPerson(): InfoPers[] {
 	try {
-		const histState = selectAll<InfoPers>(`
+		const persons = selectAll<InfoPers>(`
             SELECT 
-                (xpath('//id/text()', data))[1]::text AS id,
-                (xpath('//func_managers/func_manager/person_id/text()', data))[1]::text AS manager_id
-            FROM dbo.collaborator
-            WHERE (xpath('//hire_date/text()', data))[1]::text::date = CURRENT_DATE - 1
-               OR (xpath('//hire_date/text()', data))[1]::text::date = CURRENT_DATE;
+				c.id AS id,
+				c.hire_date,
+				(xpath('//func_managers/func_manager/person_id/text()', collab.data))[1]::text AS manager_id
+			FROM dbo.collaborators c
+			JOIN dbo.collaborator collab ON c.id = collab.id
+			WHERE c.hire_date = CURRENT_DATE - 1
+			OR c.hire_date = CURRENT_DATE;
         `);
 
-		const result: InfoPers[] = histState.map((item) => ({
-			id: RValue(item.id),
-			manager_id: RValue(item.manager_id),
+		const result = persons.map((item) => ({
+			id: item.id.Value,
+			manager_id: item.manager_id.Value,
 		}));
 
 		if (result.length === 0) {
 			log("Сотрудники не найдены");
 		} else {
 			for (const person of result) {
-				const personId = Int(person.id);
-				const managerId = Int(person.manager_id);
+				const personId = OptInt(person.id);
+				const managerId = OptInt(person.manager_id);
 
 				tools.create_notification(GLOBAL.ID_TEMPLATE, personId, "", managerId);
 
@@ -90,11 +92,11 @@ function findAndSendPerson(): InfoPers[] {
 			log(`Найдено сотрудников и отправлено уведомлений: ${result.length}`);
 		}
 
-		return result;
+		return;
 	} catch (error) {
-		HttpError("NotFoundPers", {
+		HttpError("findAndSendPerson", {
 			code: 400,
-			message: "Сотрудник не найден",
+			message: error.message,
 		});
 	}
 }

@@ -1,0 +1,61 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+
+    "paths": {
+      "@shared/*": ["./src/shared/*"],
+      "@app/*": ["./src/app/*"],
+      "@api/*": ["./src/api/*"],
+      "@pages/*": ["./src/pages/*"],
+      "@store/*": ["./src/store/*"],
+      "react": ["./node_modules/@types/react"]
+    },
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+  },
+
+  // ★ ВАЖНО: Ограничиваем область анализа для TypeScript сервера
+  "include": [
+    "src" // Анализировать ТОЛЬКО папку src
+  ],
+
+  "exclude": [
+    // ★ ОСНОВНЫЕ ИСКЛЮЧЕНИЯ ДЛЯ УСКОРЕНИЯ
+    "node_modules", // Исключаем все библиотеки
+    "dist", // Исключаем папку сборки
+    "build", // Исключаем папку билда (если есть)
+
+    // ★ ДОПОЛНИТЕЛЬНЫЕ ИСКЛЮЧЕНИЯ (добавьте при необходимости)
+    "coverage", // Исключаем отчеты тестов
+    "public", // Исключаем статические файлы (если они не в src)
+    "*.config.js", // Исключаем конфигурационные файлы
+    "*.config.ts",
+    "**/*.test.ts", // Исключаем тестовые файлы
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "__tests__", // Исключаем папки с тестами
+    "__mocks__", // Исключаем папки с моками
+    ".next", // Для Next.js проектов
+    ".vue", // Для Vue проектов
+    "*.d.ts" // Сгенерированные типы (если они не в node_modules)
+  ],
+
+  "references": [{ "path": "./tsconfig.node.json" }]
+}

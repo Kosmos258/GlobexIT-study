@@ -2,7 +2,7 @@ interface Pers {
 	id: XmlElem<number>;
 	person_fullname: XmlElem<string>;
 	person_position: XmlElem<string>;
-	status: XmlElem<number>;
+	status: XmlElem<string>;
 }
 
 function selectAll<T>(query: string) {

@@ -13,11 +13,6 @@ try {
 						mandatory: true,
 						validation: "nonempty",
 					},
-					{
-						name: "idTemplate",
-						type: "hidden",
-						value: "7231623806893854768",
-					},
 				],
 				buttons: [
 					{
@@ -36,42 +31,23 @@ try {
 			break;
 
 		case "submit_form":
-			const aFlds = ParseJson(form_fields);
+			var aFlds = ParseJson(form_fields);
 
-			let text = "";
-			let templateId = "";
-			const user = curUser.id;
+			tools.create_notification("7236243991256052588", curUser.id, aFlds[0].value);
 
-			for (const field of aFlds) {
-				if (field.type == "text") {
-					text = field.value;
-				}
-				if (field.name == "idTemplate") {
-					templateId = field.value;
-				}
-			}
+			RESULT = {
+				command: "alert",
+				msg: "Сообщение успешно отправлено!",
+				confirm_result: {
+					command: "close_form",
+				},
+			};
 
-			tools.create_notification(templateId, user, text);
-
-			if (!text) {
-				RESULT = {
-					command: "alert",
-					msg: "Сообщение не может быть пустым!",
-				};
-			} else {
-				RESULT = {
-					command: "alert",
-					msg: "Сообщение успешно отправлено!",
-					confirm_result: {
-						command: "close_form",
-					},
-				};
-			}
 			break;
 	}
 } catch (err) {
 	ERROR = 1;
-	MESSAGE = "Произошла ошибка при обработке запроса";
+	MESSAGE = "Произошла ошибка при обработке запроса " + err.message;
 
 	RESULT = {
 		command: "alert",

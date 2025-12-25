@@ -13,34 +13,36 @@
  */
 
 /**
- * @function Get_All_Employees
+ * @function GetAllUsers
  * @memberof Websoft.WT.Person_API
  * @description Получение списка сотрудников.
  * @returns {string} JSON-строка с объектом
  */
 
-function Get_All_Employees() {
+function GetAllUsers() {
 	var oRes = {
 		array: [],
 	};
 
 	try {
-		var xarrCollaborators = tools.xquery("for $elem in collaborators return $elem");
-		var Collaborator, objItem;
+		var xarrCollaborators = tools.xquery(
+			"for $elem in collaborators return $elem",
+		);
+		var collaborator, objItem;
 
-		for (Collaborator in xarrCollaborators) {
+		for (collaborator in xarrCollaborators) {
 			objItem = {
-				id: Collaborator.id.Value,
-				code: Collaborator.code.Value,
-				fullname: Collaborator.fullname.Value,
-				login: Collaborator.login.Value,
-				email: Collaborator.email.Value,
-				position_name: Collaborator.position_name.Value,
+				id: collaborator.id.Value,
+				code: collaborator.code.Value,
+				fullname: collaborator.fullname.Value,
+				login: collaborator.login.Value,
+				email: collaborator.email.Value,
+				position_name: collaborator.position_name.Value,
 			};
 			oRes.array.push(objItem);
 		}
-	} catch (err) {
-		throw new Error("Ошибка запроса сотрудников");
+	} catch (e) {
+		throw new Error("GetAllUsers -> " + e.message);
 	}
 
 	return oRes;
@@ -48,198 +50,119 @@ function Get_All_Employees() {
 
 /**
  * @typedef {Object} EmployeeEntry
- * @description Структура объекта сотрудника во входном массиве
+ * @typedef {number} integer
+ * @typedef {number} int
+ * @description Добавление сотрудников из массива JSON
  * @property {string} code - Код сотрудника (обязательно)
  * @property {string} fullname - ФИО сотрудника
  * @property {string} login - Логин сотрудника
  * @property {string} password - Пароль сотрудника
+ * @property {number} query - ID искомого документа
  */
 
 /**
  * @typedef {Object} ImportResult
- * @property {boolean} success - Успешность операции
  * @property {number} created - Количество созданных записей
  * @property {number} updated - Количество обновленных записей
- * @property {Object[]} errors - Массив ошибок
  */
 
 /**
- * @function Import_Employees
+ * @function ImportAndUpdateUsers
  * @memberof Websoft.WT.Person_API
  * @description Обработка данных для создания или обновления сотрудников. Принимает массив или объект {employees: []}.
  * @param {Object|EmployeeEntry[]|string} employees - Массив, Объект-обертка или JSON-строка
  * @returns {ImportResult} Результат импорта
  */
-function Import_Employees(employees) {
+
+function ImportAndUpdateUsers(employees) {
 	var result = {
-		success: true,
 		created: 0,
 		updated: 0,
-		errors: [],
 	};
 
 	var arrData;
 	var i, k;
-	var employee;
-	var docCollaborator, isNew, docId;
+	var docCollaborator, isNew;
 	var query;
 	var te, parts, mName;
-	var errCode;
 
 	try {
 		arrData = employees;
 
-		if (DataType(arrData) == "string" && arrData != "") {
-			try {
-				arrData = tools.read_object(arrData);
-			} catch (parseError) {
-				throw "Ошибка парсинга JSON: " + parseError;
-			}
-		}
-
-		if (
-			DataType(arrData) == "object" &&
-      !IsArray(arrData) &&
-      arrData != undefined &&
-      arrData.employees != undefined
-		) {
-			arrData = arrData.employees;
-		}
-
-		if (arrData == undefined) {
-			arrData = [];
-		}
-
 		if (!IsArray(arrData)) {
-			throw "Входные данные не являются массивом. Type: " + DataType(employees);
+			throw new Error(
+				"Входные данные не являются массивом. Type:-> " + DataType(employees),
+			);
 		}
 
 		if (ArrayCount(arrData) == 0) {
-			result.success = false;
-			result.errors.push({
-				message: "Входящий массив пуст. Проверьте передаваемые данные.",
-			});
-
-			return result;
+			throw new Error(
+				"Входящий массив пуст. Проверьте передаваемые данные -> " + e.message,
+			);
 		}
 
-		for (i = 0; i < arrData.length; i++) {
+		for (i in arrData) {
+
+			if (i.code == undefined || i.code == "") {
+				throw new Error(
+					"Отсутствует код сотрудника (поле 'code') -> " + e.message,
+				);
+			}
+
+			isNew = false;
+			docCollaborator = undefined;
+
 			try {
-				employee = arrData[i];
+				query = ArrayOptFirstElem(
+					tools.xquery(
+						"for $elem in collaborators where $elem/code = '" +
+                i.code +
+                "' return $elem",
+					),
+				);
 
-				if (employee.code == undefined || employee.code == "") {
-					result.errors.push({
-						index: i,
-						message: "Отсутствует код сотрудника (поле 'code')",
-					});
-					continue;
+				if (query != undefined) {
+					docCollaborator = tools.open_doc(query.id);
+
+					isNew = false;
+				} else {
+					docCollaborator = tools.new_doc_by_name("collaborator", false);
+					docCollaborator.BindToDb();
+					isNew = true;
 				}
+			} catch (docError) {
+				throw new Error("open_or_create_doc -> " + e.message);
+			}
 
-				isNew = false;
-				docCollaborator = undefined;
-
-				try {
-					query = ArrayOptFirstElem(tools.xquery("for $elem in collaborators where $elem/code = '" + employee.code + "' return $elem"));
-
-					if (query != undefined) {
-						docId = Int(query.id);
-						docCollaborator = tools.open_doc(docId);
-
-						if (docCollaborator == undefined) {
-							throw "Документ с ID " + docId + " найден, но не открывается";
-						}
-						isNew = false;
-					} else {
-						docCollaborator = tools.new_doc_by_name("collaborator", false);
-						docCollaborator.BindToDb();
-						isNew = true;
-					}
-				} catch (docError) {
-					result.errors.push({
-						index: i,
-						code: employee.code,
-						step: "open_or_create_doc",
-						message: docError,
-					});
-					continue;
+			te = docCollaborator.TopElem;
+			parts = i.fullname.split(" ");
+			if (parts.length > 0) te.lastname = parts[0];
+			if (parts.length > 1) te.firstname = parts[1];
+			if (parts.length > 2) {
+				mName = "";
+				for (k = 2; k < parts.length; k++) {
+					mName += (mName == "" ? "" : " ") + parts[k];
 				}
+				te.middlename = mName;
+				te.login = i.login;
+				te.password = i.password;
+			}
 
-				try {
-					te = docCollaborator.TopElem;
+			try {
+				docCollaborator.Save();
 
-					if (employee.code != undefined) {
-						te.code = employee.code;
-					}
-
-					if (
-						employee.fullname != undefined &&
-            employee.fullname != ""
-					) {
-						parts = employee.fullname.split(" ");
-						if (parts.length > 0) te.lastname = parts[0];
-						if (parts.length > 1) te.firstname = parts[1];
-						if (parts.length > 2) {
-							mName = "";
-							for (k = 2; k < parts.length; k++) {
-								mName += (mName == "" ? "" : " ") + parts[k];
-							}
-							te.middlename = mName;
-						}
-					}
-
-					if (employee.login != undefined) {
-						te.login = employee.login;
-					}
-
-					if (employee.password != undefined) {
-						te.password = employee.password;
-					}
-				} catch (fillError) {
-					result.errors.push({
-						index: i,
-						code: employee.code,
-						step: "fill_fields",
-						message: fillError,
-					});
-					continue;
+				if (isNew) {
+					result.created++;
+				} else {
+					result.updated++;
 				}
-
-				try {
-					docCollaborator.Save();
-
-					if (isNew) {
-						result.created++;
-					} else {
-						result.updated++;
-					}
-				} catch (saveError) {
-					result.errors.push({
-						index: i,
-						code: employee.code,
-						step: "save_doc",
-						message: saveError,
-					});
-					continue;
-				}
-			} catch (itemError) {
-				errCode = arrData[i] && arrData[i].code ? arrData[i].code : "unknown";
-				result.errors.push({
-					index: i,
-					code: errCode,
-					step: "general",
-					message: itemError,
-				});
+			} catch (saveError) {
+				throw new Error("save_doc -> " + e.message);
 			}
 		}
 
-		if (result.errors.length > 0) {
-			result.success = false;
-		}
-	} catch (error) {
-		result.success = false;
-		result.errors.push({
-			message: "Критическая ошибка: " + error,
-		});
+	} catch (e) {
+		throw new Error("ImportAndUpdateUsers -> " + e.message);
 	}
 
 	return result;

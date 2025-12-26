@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { getCertificates } from '../../api/api';
 import './CertificatesList.scss';
 
 interface Certificate {
@@ -11,36 +11,19 @@ interface Certificate {
 export const CertificatesList = () => {
 	const [certificates, setCertificates] = useState<Certificate[]>([]);
 
-	const fetchCertificates = async () => {
-		try {
-			const response = await axios.post(
-				'http://localhost/custom_web_template.html?object_id=7230187328704344276',
-				{ method: 'getCertificates' },
-			);
-
-			setCertificates(response.data.data);
-		} catch (e: unknown) {
-			throw new Error('fetchCertificates -> ' + e);
-		}
-	};
-
 	useEffect(() => {
 		const fetchData = async () => {
-			await fetchCertificates();
+			const data = await getCertificates();
+			if (data) {
+				setCertificates(data);
+			}
 		};
 
 		fetchData();
 	}, []);
 
 	const handleDownload = (downloadUrl: string) => {
-		if (!downloadUrl) {
-			console.error('Ссылка для скачивания не указана');
-			return;
-		}
-
-		let formattedUrl = downloadUrl;
-		formattedUrl = window.location.origin + '/' + downloadUrl;
-
+		const formattedUrl = window.location.origin + '/' + downloadUrl;
 		window.open(formattedUrl, '_blank');
 	};
 

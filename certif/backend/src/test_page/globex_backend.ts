@@ -7,6 +7,10 @@ import { log } from "./modules/log"; // .
 import { IRequestBody } from "./types/RequestBody";
 import { selectAll } from "./utils/query"; // .
 
+const GLOBAL = {
+	PRINT_ID: "7230159535619297509",
+};
+
 /* --- types --- */
 interface ICertificate {
 	id: XmlElem<number>;
@@ -28,9 +32,9 @@ const curUserId: number = DEV_MODE
 	: OptInt(curUserID);
 const DEBUG_MODE = tools_web.is_true(getParam("IS_DEBUG", undefined));
 
-interface Certificates {
-	id: number;
-	type_name: string;
+interface ICertificate {
+	id: XmlElem<number>;
+	type_name: XmlElem<string>;
 	downloadUrl: string;
 }
 
@@ -45,26 +49,11 @@ function getCertificates() {
 				dbo.certificates cert; 
 		`);
 
-		const printID = "7230159535619297509"; // <ID печатной формы>
-
-		const result: Certificates[] = [];
-
-		certs.map((item) => {
-			const id = RValue(item.id);
-			const type_name = RValue(item.type_name);
-
-			const sid = tools_web.get_sum_sid(printID, Session.sid);
-
-			const downloadUrl = `view_print_form.html?print_form_id=${printID}&object_id=${id}&sid=${sid}`;
-
-			result.push({
-				id,
-				type_name,
-				downloadUrl
-			});
-		});
-
-		return result;
+		return certs.map((item) => ({
+			id: item.id,
+			type_name: item.type_name,
+			downloadUrl: `view_print_form.html?print_form_id=${GLOBAL.PRINT_ID}&object_id=${item.id}&sid=${tools_web.get_sum_sid(GLOBAL.PRINT_ID, Session.sid)}`,
+		}));
 	} catch (e) {
 		err("getCertificates", e);
 	}

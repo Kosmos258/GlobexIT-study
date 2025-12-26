@@ -50,8 +50,8 @@ function getCertificates() {
 		`);
 
 		return certs.map((item) => ({
-			id: item.id,
-			type_name: item.type_name,
+			id: item.id.Value,
+			type_name: item.type_name.Value,
 			downloadUrl: `view_print_form.html?print_form_id=${GLOBAL.PRINT_ID}&object_id=${item.id}&sid=${tools_web.get_sum_sid(String(GLOBAL.PRINT_ID), Session.sid)}`,
 		}));
 	} catch (e) {
@@ -114,4 +114,5 @@ EnableLog(logConfig.code, DEBUG_MODE);
 main(Request, Response);
 
 export {};
+
 

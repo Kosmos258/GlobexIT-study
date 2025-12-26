@@ -49,6 +49,53 @@ function GetAllUsers() {
 }
 
 /**
+ * @typedef {Object} NameParts
+ * @property {string} lastname - Фамилия
+ * @property {string} firstname - Имя
+ * @property {string} middlename - Отчество (может быть пустым)
+ */
+
+/**
+ * @function ParseFullName
+ * @memberof Websoft.WT.Person_API
+ * @description Разделение полного имени на фамилию, имя и отчество.
+ * @param {string} fullname - Полное имя в формате "Фамилия Имя Отчество"
+ * @returns {NameParts} Объект с разделенными частями имени
+ */
+
+function ParseFullName(fullname) {
+	var result = {
+		lastname: "",
+		firstname: "",
+		middlename: "",
+	};
+
+	if (fullname == undefined || fullname == "") {
+		return result;
+	}
+
+	var parts = fullname.split(" ");
+	var k;
+
+	if (parts.length > 0) {
+		result.lastname = parts[0];
+	}
+
+	if (parts.length > 1) {
+		result.firstname = parts[1];
+	}
+
+	if (parts.length > 2) {
+		result.middlename = "";
+		for (k = 2; k < parts.length; k++) {
+			result.middlename += (result.middlename == "" ? "" : " ") + parts[k];
+		}
+	}
+
+	return result;
+}
+
+/**
  * @typedef {Object} EmployeeEntry
  * @typedef {number} integer
  * @typedef {number} int
@@ -81,10 +128,10 @@ function ImportAndUpdateUsers(employees) {
 	};
 
 	var arrData;
-	var i, k;
+	var i;
 	var docCollaborator, isNew;
 	var query;
-	var te, parts, mName;
+	var te, nameParts;
 
 	try {
 		arrData = employees;
@@ -123,7 +170,6 @@ function ImportAndUpdateUsers(employees) {
 
 				if (query != undefined) {
 					docCollaborator = tools.open_doc(query.id);
-
 					isNew = false;
 				} else {
 					docCollaborator = tools.new_doc_by_name("collaborator", false);
@@ -135,29 +181,21 @@ function ImportAndUpdateUsers(employees) {
 			}
 
 			te = docCollaborator.TopElem;
-			parts = i.fullname.split(" ");
-			if (parts.length > 0) te.lastname = parts[0];
-			if (parts.length > 1) te.firstname = parts[1];
-			if (parts.length > 2) {
-				mName = "";
-				for (k = 2; k < parts.length; k++) {
-					mName += (mName == "" ? "" : " ") + parts[k];
-				}
-				te.middlename = mName;
-				te.login = i.login;
-				te.password = i.password;
-			}
 
-			try {
-				docCollaborator.Save();
+			nameParts = ParseFullName(i.fullname);
+			te.lastname = nameParts.lastname;
+			te.firstname = nameParts.firstname;
+			te.middlename = nameParts.middlename;
 
-				if (isNew) {
-					result.created++;
-				} else {
-					result.updated++;
-				}
-			} catch (saveError) {
-				throw new Error("save_doc -> " + e.message);
+			te.login = i.login;
+			te.password = i.password;
+
+			docCollaborator.Save();
+
+			if (isNew) {
+				result.created++;
+			} else {
+				result.updated++;
 			}
 		}
 

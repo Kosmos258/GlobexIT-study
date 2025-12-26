@@ -33,7 +33,7 @@ function selectOne<T>(query: string, defaultObj: any = undefined) {
 
 try {
 	const personId = learningDoc.person_id.Value;
-	const finishedCourseState = learningDoc.state_id.Value;
+	learningDoc.state_id.Value;
 
 	const allLearnings = selectAll<{ state_id: XmlElem<number>; }>(`
 			SELECT 
@@ -44,23 +44,10 @@ try {
 			WHERE person_id = '${personId}';
 		`);
 
-	const failedAttempts = allLearnings.filter(
+	allLearnings.filter(
 		(l) => OptInt(l.state_id.Value) !== 4,
 	).length;
 
-	if (failedAttempts >= 3) {
-		throw HttpError("Handler", {
-			code: 500,
-			message: "Превышено количество попыток",
-		});
-	}
-
-	if (finishedCourseState !== 4) {
-		throw HttpError("Handler", {
-			code: 500,
-			message: "Курс не завершен успешно",
-		});
-	}
 
 	const newCourse = selectOne<{ id: XmlElem<number>; }>(`
 			SELECT 

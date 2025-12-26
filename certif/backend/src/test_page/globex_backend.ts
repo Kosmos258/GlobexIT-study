@@ -8,7 +8,7 @@ import { IRequestBody } from "./types/RequestBody";
 import { selectAll } from "./utils/query"; // .
 
 const GLOBAL = {
-	PRINT_ID: OptInt((Param.PRINT_ID)),
+	PRINT_ID: OptInt(Param.PRINT_ID),
 };
 
 /* --- types --- */
@@ -114,5 +114,6 @@ EnableLog(logConfig.code, DEBUG_MODE);
 main(Request, Response);
 
 export {};
+
 
 

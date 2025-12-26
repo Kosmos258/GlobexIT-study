@@ -76,21 +76,19 @@ function findAndSendPerson(): InfoPers[] {
 			manager_id: item.manager_id.Value,
 		}));
 
-		if (result.length === 0) {
-			log("Сотрудники не найдены");
-		} else {
-			for (const person of result) {
-				const personId = OptInt(person.id);
-				const managerId = OptInt(person.manager_id);
 
-				tools.create_notification(GLOBAL.ID_TEMPLATE, personId, "", managerId);
+		for (const person of result) {
+			const personId = OptInt(person.id);
+			const managerId = OptInt(person.manager_id);
 
-				log(`Уведомление отправлено сотруднику ${personId} ${
-					managerId ? "с руководителем " + managerId : "без руководителя"
-				}`);
-			}
-			log(`Найдено сотрудников и отправлено уведомлений: ${result.length}`);
+			tools.create_notification(GLOBAL.ID_TEMPLATE, personId, "", managerId);
+
+			log(`Уведомление отправлено сотруднику ${personId} ${
+				managerId ? "с руководителем " + managerId : "без руководителя"
+			}`);
 		}
+		log(`Найдено сотрудников и отправлено уведомлений: ${result.length}`);
+
 
 		return;
 	} catch (error) {

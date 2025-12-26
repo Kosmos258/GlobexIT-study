@@ -28,6 +28,10 @@ interface IError {
 	message: string;
 }
 
+interface IOutsourceCollaborator {
+	collaborator_id: string;
+}
+
 /**
  * Создает поток ошибки с объектом error
  * @param {object} source - источник ошибки
@@ -67,6 +71,10 @@ function log(message: string, type?: string) {
 	} else if (GLOBAL.IS_DEBUG) {
 		alert(log);
 	}
+}
+
+function selectAll<T>(query: string) {
+	return ArraySelectAll<T>(tools.xquery(`sql: ${query}`));
 }
 
 function loadExcel(sFileUrl: string) {
@@ -136,16 +144,23 @@ function getCellValue(cells: any, row: number, col: number): string {
 	}
 }
 
+function getOutsourceCollaboratorIds(): string[] {
+	const result = selectAll<IOutsourceCollaborator>(`
+		SELECT 
+			(xpath('//collaborator_id/text()', collab_xml.collaborator))[1]::text AS collaborator_id
+		FROM groups g
+		CROSS JOIN LATERAL unnest(xpath('//collaborators/collaborator', g.data)) AS collab_xml(collaborator)
+		WHERE (xpath('//name/text()', g.data))[1]::text = 'OutSource'
+	`);
+
+	return result.map(row => row.collaborator_id);
+}
+
 function readExcel(sFileUrl: string) {
 	try {
 		const _cells = loadExcel(sFileUrl);
 
-		if (!_cells) {
-			HttpError("readExcel", {
-				code: 500,
-				message: "Не удалось получить таблицу: readExcel()",
-			});
-		}
+		const outsourceCollaboratorIds = getOutsourceCollaboratorIds();
 
 		let row = 1;
 		let codeExcel;
@@ -170,7 +185,7 @@ function readExcel(sFileUrl: string) {
 					code_group: getCellValue(_cells, row, 5),
 				};
 
-				if (personData.code_group !== "outsource") {
+				if (!outsourceCollaboratorIds.includes(personData.code)) {
 					row++;
 					continue;
 				}
@@ -219,8 +234,6 @@ function createOrUpdateCollaborator(cardData: IColl) {
 	try {
 		const existingCollab = findCollaborator(cardData.code, cardData.login);
 
-		let collabDoc: CcAdaptationCatalogDocument;
-
 		if (existingCollab != undefined) {
 			log(
 				`Карточка сотрудника ${cardData.login} (код ${cardData.code}) уже существует. Пропуск.`,
@@ -228,10 +241,10 @@ function createOrUpdateCollaborator(cardData: IColl) {
 			);
 
 			return;
-		} else {
-			collabDoc = tools.new_doc_by_name("cc_adaptation_catalog", false);
-			collabDoc.BindToDb();
 		}
+
+		const collabDoc: CcAdaptationCatalogDocument = tools.new_doc_by_name("cc_adaptation_catalog");
+		collabDoc.BindToDb();
 
 		const tecollabDoc = collabDoc.TopElem;
 

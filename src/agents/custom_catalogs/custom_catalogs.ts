@@ -1,6 +1,7 @@
 const GLOBAL = {
 	IS_DEBUG: tools_web.is_true(Param.IS_DEBUG),
 	FILE_IMPORT: OptInt(Param.FILE_IMPORT),
+	GROUP_ID: OptInt(Param.GROUP_ID),
 };
 
 interface IColl {
@@ -28,14 +29,16 @@ interface IError {
 	message: string;
 }
 
-interface IOutsourceCollaborator {
-	collaborator_id: string;
+interface ICollaboratorId {
+	id: number;
+}
+
+interface IGroupCollaborator {
+	collaborator_id: number;
 }
 
 /**
  * Создает поток ошибки с объектом error
- * @param {object} source - источник ошибки
- * @param {object} errorObject - объект ошибки
  */
 function HttpError(source: string, errorObject: IError) {
 	throw new Error(source + " " + errorObject.message);
@@ -51,8 +54,6 @@ EnableLog(logConfig.code, GLOBAL.IS_DEBUG);
 
 /**
  * Вывод сообщения в журнал
- * @param {string} message - Сообщение
- * @param {string} type - Тип сообщения info/error
  */
 function log(message: string, type?: string) {
 	type = IsEmptyValue(type) ? "INFO" : StrUpperCase(type);
@@ -65,11 +66,11 @@ function log(message: string, type?: string) {
 		message = tools.object_to_text(message, "json");
 	}
 
-	const log = `[${type}][${logConfig.type}][${logConfig.agentId}]: ${message}`;
+	const logText = `[${type}][${logConfig.type}][${logConfig.agentId}]: ${message}`;
 	if (LdsIsServer) {
-		LogEvent(logConfig.code, log);
+		LogEvent(logConfig.code, logText);
 	} else if (GLOBAL.IS_DEBUG) {
-		alert(log);
+		alert(logText);
 	}
 }
 
@@ -77,115 +78,117 @@ function selectAll<T>(query: string) {
 	return ArraySelectAll<T>(tools.xquery(`sql: ${query}`));
 }
 
+/**
+ * Получение id сотрудника по code (из Excel)
+ */
+function getCollaboratorIdByCode(code: string): number | null {
+	const rows = selectAll<ICollaboratorId>(`
+		SELECT 
+			id
+		FROM dbo.collaborators
+		WHERE code = '${code}';
+	`);
+
+	return rows.length ? OptInt(rows[0].id) : null;
+}
+
+/**
+ * Проверка: состоит ли сотрудник в группе
+ */
+function isCollaboratorInGroup(groupId: number, collaboratorId: number): boolean {
+	const rows = selectAll<IGroupCollaborator>(`
+		SELECT 
+			collaborator_id
+		FROM dbo.group_collaborators
+		WHERE group_id = ${groupId}
+		AND collaborator_id = ${collaboratorId};
+	`);
+
+	return rows.length > 0;
+}
+
+/**
+ * Проверка сотрудника по code
+ */
+function isCollaboratorAllowed(code: string): boolean {
+	if (IsEmptyValue(code)) {
+		return false;
+	}
+
+	const collaboratorId = getCollaboratorIdByCode(code);
+	if (collaboratorId == null) {
+		return false;
+	}
+
+	return isCollaboratorInGroup(GLOBAL.GROUP_ID, collaboratorId);
+}
+
 function loadExcel(sFileUrl: string) {
 	try {
 		const filePath = UrlToFilePath(sFileUrl);
-		const oExcelDoc = tools.get_object_assembly("Excel");
-		oExcelDoc.Open(filePath);
+		const excel = tools.get_object_assembly("Excel");
+		excel.Open(filePath);
 
-		const worksheet = oExcelDoc.GetWorksheet(0);
+		const worksheet = excel.GetWorksheet(0);
 
-		const cells = worksheet.Cells;
-
-		return cells;
+		return worksheet.Cells;
 	} catch (e) {
-		HttpError("loadExcel ", {
+		HttpError("loadExcel", {
 			code: 500,
-			message: `Ошибка загрузки файла Excel: ${e.message}`,
+			message: `Ошибка загрузки Excel: ${e.message}`,
 		});
 	}
 }
 
-/**
- * Функция получает значение ячейки по индексам строки и столбца
- * @param {any} cells - объект ячеек Excel
- * @param {number} row - индекс строки (0-based)
- * @param {number} col - индекс столбца (0-based)
- * @returns {string} - значение ячейки или пустая строка
- */
 function getCellValue(cells: any, row: number, col: number): string {
 	try {
-		if (col < 0 || row < 0) {
-			return "";
-		}
-
 		let columnName = "";
 		let index = col;
-		let remainder;
 
 		while (index >= 0) {
-			remainder = index % 26;
-			columnName = String.fromCharCode(65 + remainder) + columnName;
+			columnName = String.fromCharCode(65 + (index % 26)) + columnName;
 			index = OptInt(index / 26) - 1;
 		}
 
-		const cellAddress = columnName + (row + 1);
+		const cell = cells.GetCell(columnName + (row + 1));
+		if (!cell || cell.Value == null) return "";
 
-		const cell = cells.GetCell(cellAddress);
+		const value = Trim(String(cell.Value));
 
-		if (cell == undefined) return "";
-
-		const val = cell.Value;
-
-		if (val == null) return "";
-
-		const strVal = Trim(String(val));
-
-		if (strVal === "undefined") return "";
-
-		return strVal;
+		return value === "undefined" ? "" : value;
 	} catch (e) {
 		HttpError("getCellValue", {
 			code: 404,
-			message: `Ошибка получения значения ячейки [${row}, ${col}]: ${e.message}`,
+			message: `Ошибка чтения ячейки [${row}, ${col}]: ${e.message}`,
 		});
 
 		return "";
 	}
 }
 
-function getOutsourceCollaboratorIds(): string[] {
-	const result = selectAll<IOutsourceCollaborator>(`
-		SELECT 
-			(xpath('//collaborator_id/text()', collab_xml.collaborator))[1]::text AS collaborator_id
-		FROM groups g
-		CROSS JOIN LATERAL unnest(xpath('//collaborators/collaborator', g.data)) AS collab_xml(collaborator)
-		WHERE (xpath('//name/text()', g.data))[1]::text = 'OutSource'
-	`);
-
-	return result.map(row => row.collaborator_id);
-}
-
 function readExcel(sFileUrl: string) {
 	try {
-		const _cells = loadExcel(sFileUrl);
-
-		const outsourceCollaboratorIds = getOutsourceCollaboratorIds();
+		const cells = loadExcel(sFileUrl);
 
 		let row = 1;
-		let codeExcel;
-		let personData: IColl;
 		const processedLogins: string[] = [];
 
 		// eslint-disable-next-line no-constant-condition
 		while (true) {
-			codeExcel = getCellValue(_cells, row, 0);
-
-			if (!codeExcel) {
-				break;
-			}
+			const codeExcel = getCellValue(cells, row, 0);
+			if (!codeExcel) break;
 
 			try {
-				personData = {
+				const personData: IColl = {
 					code: codeExcel,
-					login: getCellValue(_cells, row, 1),
-					fullname: getCellValue(_cells, row, 2),
-					code_position: getCellValue(_cells, row, 3),
-					position_name: getCellValue(_cells, row, 4),
-					code_group: getCellValue(_cells, row, 5),
+					login: getCellValue(cells, row, 1),
+					fullname: getCellValue(cells, row, 2),
+					code_position: getCellValue(cells, row, 3),
+					position_name: getCellValue(cells, row, 4),
+					code_group: getCellValue(cells, row, 5),
 				};
 
-				if (!outsourceCollaboratorIds.includes(personData.code)) {
+				if (!isCollaboratorAllowed(personData.code)) {
 					row++;
 					continue;
 				}
@@ -215,102 +218,63 @@ function readExcel(sFileUrl: string) {
 }
 
 function findCollaborator(code_cc: string, login_cc: string): any {
-	try {
-		const queryStr =
-			`for $elem in cc_adaptation_catalogs where $elem/code_cc = '${code_cc}' and $elem/login_cc = '${login_cc}' return $elem`;
-		const objArray = tools.xquery(queryStr);
+	const query =
+		`for $e in cc_adaptation_catalogs
+		 where $e/code_cc = '${code_cc}'
+		   and $e/login_cc = '${login_cc}'
+		 return $e`;
 
-		const firstElem = ArrayOptFirstElem(objArray);
+	const result = tools.xquery(query);
 
-		return firstElem;
-	} catch (e) {
-		log(`Ошибка поиска сотрудника ${login_cc}: ${e.message}`, "error");
-
-		return undefined;
-	}
+	return ArrayOptFirstElem(result);
 }
 
 function createOrUpdateCollaborator(cardData: IColl) {
-	try {
-		const existingCollab = findCollaborator(cardData.code, cardData.login);
+	const exists = findCollaborator(cardData.code, cardData.login);
+	if (exists) {
+		log(`Карточка ${cardData.login} уже существует`, "info");
 
-		if (existingCollab != undefined) {
-			log(
-				`Карточка сотрудника ${cardData.login} (код ${cardData.code}) уже существует. Пропуск.`,
-				"info",
-			);
-
-			return;
-		}
-
-		const collabDoc: CcAdaptationCatalogDocument = tools.new_doc_by_name("cc_adaptation_catalog");
-		collabDoc.BindToDb();
-
-		const tecollabDoc = collabDoc.TopElem;
-
-		tecollabDoc.code_cc.Value = cardData.code;
-		tecollabDoc.login_cc.Value = cardData.login;
-		tecollabDoc.full_name_cc.Value = cardData.fullname;
-		tecollabDoc.code_position_cc.Value = cardData.code_position;
-		tecollabDoc.name_position_cc.Value = cardData.position_name;
-		tecollabDoc.code_group_cc.Value = cardData.code_group;
-
-		collabDoc.Save();
-
-		return collabDoc;
-	} catch (error) {
-		HttpError("createOrUpdateCollaborator ", {
-			code: 500,
-			message: `Ошибка обработки карточки для ${cardData.login}: ${error.message}`,
-		});
+		return;
 	}
+
+	const doc: CcAdaptationCatalogDocument =
+		tools.new_doc_by_name("cc_adaptation_catalog");
+	doc.BindToDb();
+
+	doc.TopElem.code_cc.Value = cardData.code;
+	doc.TopElem.login_cc.Value = cardData.login;
+	doc.TopElem.full_name_cc.Value = cardData.fullname;
+	doc.TopElem.code_position_cc.Value = cardData.code_position;
+	doc.TopElem.name_position_cc.Value = cardData.position_name;
+	doc.TopElem.code_group_cc.Value = cardData.code_group;
+
+	doc.Save();
 }
 
 function main() {
-	try {
-		if (GLOBAL.FILE_IMPORT == undefined) {
-			HttpError("main ", {
-				code: 500,
-				message: "Ошибка: необходимо указать ссылку на файл в параметрах агента.",
-			});
-		}
-
-		const docImportFile = tools.open_doc<ResourceDocument>(GLOBAL.FILE_IMPORT);
-
-		if (docImportFile == undefined) {
-			log("Ошибка: файл не найден в системе.", "error");
-
-			return;
-		}
-
-		const fileUrl = docImportFile.TopElem.file_url.Value;
-
-		if (!StrContains(UrlPathSuffix(fileUrl), ".xls")) {
-			log("Ошибка: необходимо выбрать файл '.xls' или '.xlsx'", "error");
-
-			return;
-		}
-
-		const sTempFileUrl = ObtainSessionTempFile(
-			StrLowerCase(UrlPathSuffix(fileUrl)),
-		);
-
-		docImportFile.TopElem.get_data(sTempFileUrl);
-
-		readExcel(sTempFileUrl);
-	} catch (e) {
-		log(`Ошибка в main: ${e.message}`, "error");
-		HttpError("main ", {
+	if (GLOBAL.FILE_IMPORT == undefined) {
+		HttpError("main", {
 			code: 500,
-			message: `Выполнение прервано из-за ошибки: ${e.message}`,
+			message: "Не указан файл импорта",
 		});
 	}
+
+	const doc = tools.open_doc<ResourceDocument>(GLOBAL.FILE_IMPORT);
+	if (!doc) {
+		log("Файл не найден", "error");
+
+		return;
+	}
+
+	const fileUrl = doc.TopElem.file_url.Value;
+	const tempUrl = ObtainSessionTempFile(StrLowerCase(UrlPathSuffix(fileUrl)));
+
+	doc.TopElem.get_data(tempUrl);
+	readExcel(tempUrl);
 }
 
-log("--- Начало. #55435 Агент импорта сотрудников из файла Excel ---");
-
+log("--- Начало импорта сотрудников ---");
 main();
-
-log("--- Конец. #55435 Агент импорта сотрудников из файла Excel ---");
+log("--- Конец импорта сотрудников ---");
 
 export {};

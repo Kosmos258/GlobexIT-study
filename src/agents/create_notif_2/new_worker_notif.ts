@@ -80,9 +80,9 @@ function findAndSendPerson(): InfoPers[] {
 		for (const person of newCollaborators) {
 			tools.create_notification(
 				GLOBAL.ID_TEMPLATE,
-				person.person_id,
+				person.person_id.Value,
 				"",
-				person.manager_id,
+				person.manager_id.Value,
 			);
 		}
 

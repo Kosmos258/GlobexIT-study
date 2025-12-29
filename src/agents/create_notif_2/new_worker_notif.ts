@@ -65,18 +65,18 @@ function findAndSendPerson(): InfoPers[] {
 	try {
 		const newCollaborators = selectAll<InfoPers>(`
 			SELECT
-				coll.id as person_id,
+				colls.id as person_id,
 				fm.object_name as obj_fullname,
 				fm.person_id as manager_id,
 				fm.person_fullname as per_fullname
-			FROM dbo.collaborators coll
+			FROM dbo.collaborators colls
 			LEFT JOIN dbo.func_managers fm 
-			ON coll.id = fm.object_id
-			WHERE coll.hire_date = CURRENT_DATE
-			OR coll.hire_date = CURRENT_DATE - 1;
+			ON colls.id = fm.object_id
+			WHERE colls.hire_date = CURRENT_DATE
+			OR colls.hire_date = CURRENT_DATE - 1;
 		`);
 
-		const result: InfoPers[] = newCollaborators.map((item) => ({
+		const result = newCollaborators.map((item) => ({
 			person_id: item.person_id.Value,
 			obj_fullname: item.obj_fullname.Value,
 			manager_id: item.manager_id.Value,
@@ -125,7 +125,7 @@ function findAndSendPerson(): InfoPers[] {
 
 		}
 
-		return result;
+		return;
 	} catch (error) {
 		HttpError("findAndSendPerson", {
 			code: 400,

@@ -76,15 +76,8 @@ function findAndSendPerson(): InfoPers[] {
 			OR cs.hire_date = CURRENT_DATE - 1;
 		`);
 
-		const result = newCollaborators.map((item) => ({
-			person_id: item.person_id.Value,
-			obj_fullname: item.obj_fullname.Value,
-			manager_id: item.manager_id.Value,
-			per_fullname: item.per_fullname.Value,
-		}));
 
-
-		for (const person of result) {
+		for (const person of newCollaborators) {
 			tools.create_notification(
 				GLOBAL.ID_TEMPLATE,
 				person.person_id,
@@ -95,11 +88,11 @@ function findAndSendPerson(): InfoPers[] {
 
 		const managerGroups: Array<{ managerId: number; employees: string[]; }> = [];
 
-		for (const item of result) {
+		for (const item of newCollaborators) {
 			let found = false;
 			for (const group of managerGroups) {
-				if (group.managerId === item.manager_id) {
-					group.employees.push(item.obj_fullname);
+				if (group.managerId === item.manager_id.Value) {
+					group.employees.push(item.obj_fullname.Value);
 					found = true;
 					break;
 				}
@@ -107,8 +100,8 @@ function findAndSendPerson(): InfoPers[] {
 
 			if (!found) {
 				managerGroups.push({
-					managerId: item.manager_id,
-					employees: [item.obj_fullname],
+					managerId: item.manager_id.Value,
+					employees: [item.obj_fullname.Value],
 				});
 			}
 		}

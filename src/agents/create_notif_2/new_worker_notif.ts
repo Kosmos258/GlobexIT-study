@@ -5,8 +5,8 @@ interface IError {
 
 const GLOBAL = {
 	IS_DEBUG: tools_web.is_true(Param.IS_DEBUG),
-	ID_TEMPLATE: String(Param.ID_TEMPLATE),
-	ID_TEMPLATE_BOSS: String(Param.ID_TEMPLATE_BOSS),
+	ID_TEMPLATE: OptInt(Param.ID_TEMPLATE),
+	ID_TEMPLATE_BOSS: OptInt(Param.ID_TEMPLATE_BOSS),
 };
 
 const logConfig = {
@@ -55,89 +55,81 @@ function selectAll<T>(query: string) {
 }
 
 interface InfoPers {
-	person_id: number;
-	manager_id: number;
-	obj_fullname: string;
-	per_fullname: string;
+	person_id: XmlElem<number>;
+	manager_id: XmlElem<number>;
+	obj_fullname: XmlElem<string>;
+	per_fullname: XmlElem<string>;
 }
 
 function findAndSendPerson(): InfoPers[] {
 	try {
-		const histState = selectAll<InfoPers>(`
+		const newCollaborators = selectAll<InfoPers>(`
 			SELECT
-				c.id as person_id,
+				coll.id as person_id,
 				fm.object_name as obj_fullname,
 				fm.person_id as manager_id,
 				fm.person_fullname as per_fullname
-			FROM dbo.collaborators c
-			LEFT JOIN dbo.func_managers fm ON c.id = fm.object_id
-			WHERE c.hire_date = CURRENT_DATE
-			   OR c.hire_date = CURRENT_DATE - 1
+			FROM dbo.collaborators coll
+			LEFT JOIN dbo.func_managers fm 
+			ON coll.id = fm.object_id
+			WHERE coll.hire_date = CURRENT_DATE
+			OR coll.hire_date = CURRENT_DATE - 1;
 		`);
 
-		const result: InfoPers[] = histState.map((item) => ({
-			person_id: RValue(item.person_id),
-			obj_fullname: RValue(item.obj_fullname),
-			manager_id: RValue(item.manager_id),
-			per_fullname: RValue(item.per_fullname),
+		const result: InfoPers[] = newCollaborators.map((item) => ({
+			person_id: item.person_id.Value,
+			obj_fullname: item.obj_fullname.Value,
+			manager_id: item.manager_id.Value,
+			per_fullname: item.per_fullname.Value,
 		}));
 
-		if (result.length === 0) {
-			log("Сотрудники не найдены");
-		} else {
-			for (const person of result) {
-				tools.create_notification(
-					GLOBAL.ID_TEMPLATE,
-					person.person_id,
-					"",
-					person.manager_id,
-				);
-				log("Уведомление отправлено сотруднику " + person.person_id);
-			}
 
-			const managerGroups: Array<{ managerId: number; employees: string[]; }> = [];
+		for (const person of result) {
+			tools.create_notification(
+				GLOBAL.ID_TEMPLATE,
+				person.person_id,
+				"",
+				person.manager_id,
+			);
+		}
 
-			for (const item of result) {
-				let found = false;
-				for (const group of managerGroups) {
-					if (group.managerId === item.manager_id) {
-						group.employees.push(item.obj_fullname);
-						found = true;
-						break;
-					}
-				}
+		const managerGroups: Array<{ managerId: number; employees: string[]; }> = [];
 
-				if (!found) {
-					managerGroups.push({
-						managerId: item.manager_id,
-						employees: [item.obj_fullname],
-					});
-				}
-			}
-
-			log("Количество групп руководителей: " + managerGroups.length);
-
+		for (const item of result) {
+			let found = false;
 			for (const group of managerGroups) {
-				const employeesList = group.employees.join("\n");
-
-				log("Отправка руководителю ID: " + group.managerId);
-				log("Сотрудники: " + group.employees.join(", "));
-
-				tools.create_notification(
-					GLOBAL.ID_TEMPLATE_BOSS,
-					group.managerId,
-					employeesList,
-				);
-				log("Уведомление отправлено руководителю " + group.managerId);
+				if (group.managerId === item.manager_id) {
+					group.employees.push(item.obj_fullname);
+					found = true;
+					break;
+				}
 			}
+
+			if (!found) {
+				managerGroups.push({
+					managerId: item.manager_id,
+					employees: [item.obj_fullname],
+				});
+			}
+		}
+
+
+		for (const group of managerGroups) {
+			const employeesList = group.employees.join("\n");
+
+			tools.create_notification(
+				GLOBAL.ID_TEMPLATE_BOSS,
+				group.managerId,
+				employeesList,
+			);
+
 		}
 
 		return result;
 	} catch (error) {
-		log("КРИТИЧЕСКАЯ ОШИБКА: " + error);
-		HttpError("NotFoundPers", {
+		HttpError("findAndSendPerson", {
 			code: 400,
-			message: "error",
+			message: "Ошибка -> " + error.message,
 		});
 	}
 }

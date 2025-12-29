@@ -1,13 +1,15 @@
+const FILTERED_GROUP = { PARAM1 };
+
 interface Pers {
-  employee_id: XmlElem<string>;
-  employee_code: XmlElem<string>;
-  employee_fullname: XmlElem<string>;
-  employee_email: XmlElem<string>;
-  employee_position: XmlElem<string>;
-  employee_department: XmlElem<string>;
-  manager_name: XmlElem<string>;
-  manager_position: XmlElem<string>;
-  manager_email: XmlElem<string>;
+	employee_id: XmlElem<string>;
+	employee_code: XmlElem<string>;
+	employee_fullname: XmlElem<string>;
+	employee_email: XmlElem<string>;
+	employee_position: XmlElem<string>;
+	employee_department: XmlElem<string>;
+	manager_name: XmlElem<string>;
+	manager_position: XmlElem<string>;
+	manager_email: XmlElem<string>;
 }
 
 function selectAll<T>(query: string) {
@@ -15,38 +17,31 @@ function selectAll<T>(query: string) {
 }
 
 try {
-	const groupId = "7088637082126768384";
-
-	let groupFilter = "";
-	if (groupId != null) {
-		groupFilter = `AND group_fm.object_id = ${groupId}`;
-	}
-
 	const getSQL = selectAll<Pers>(`
         SELECT DISTINCT
-			c.id as employee_id,
-			c.code as employee_code,
-			c.fullname as employee_fullname,
-			c.email as employee_email,
-			c.position_name as employee_position,
-			c.position_parent_name as employee_department,
-			fm.person_fullname as manager_name,
-			manager_pos.object_name as manager_position,
-			manager.email as manager_email
-		FROM dbo.collaborators c
-		INNER JOIN dbo.func_managers group_fm
-			ON c.id = group_fm.person_id
-			AND group_fm.catalog = 'group'
-			${groupFilter}
-		INNER JOIN dbo.func_managers fm 
-			ON c.id = fm.object_id 
-			AND fm.catalog = 'collaborator'
-		LEFT JOIN dbo.collaborators manager 
-			ON manager.id = fm.person_id
-		LEFT JOIN dbo.func_managers manager_pos
-			ON manager_pos.object_id = fm.person_position_id
-			AND manager_pos.catalog = 'position'
-		WHERE fm.person_fullname IS NOT NULL;
+            c.id as employee_id,
+            c.code as employee_code,
+            c.fullname as employee_fullname,
+            c.email as employee_email,
+            c.position_name as employee_position,
+            c.position_parent_name as employee_department,
+            fm.person_fullname as manager_name,
+            manager_pos.object_name as manager_position,
+            manager.email as manager_email
+        FROM dbo.collaborators c
+        INNER JOIN dbo.func_managers group_fm
+            ON c.id = group_fm.person_id
+            AND group_fm.catalog = 'group'
+			AND group_fm.object_id = ${FILTERED_GROUP}
+        INNER JOIN dbo.func_managers fm 
+            ON c.id = fm.object_id 
+            AND fm.catalog = 'collaborator'
+        LEFT JOIN dbo.collaborators manager 
+            ON manager.id = fm.person_id
+        LEFT JOIN dbo.func_managers manager_pos
+            ON manager_pos.object_id = fm.person_position_id
+            AND manager_pos.catalog = 'position'
+        WHERE fm.person_fullname IS NOT NULL;
 `);
 
 	const aRes: any[] = [];

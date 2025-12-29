@@ -65,15 +65,15 @@ function findAndSendPerson(): InfoPers[] {
 	try {
 		const newCollaborators = selectAll<InfoPers>(`
 			SELECT
-				colls.id as person_id,
+				cs.id as person_id,
 				fm.object_name as obj_fullname,
 				fm.person_id as manager_id,
 				fm.person_fullname as per_fullname
-			FROM dbo.collaborators colls
+			FROM dbo.collaborators cs
 			LEFT JOIN dbo.func_managers fm 
-			ON colls.id = fm.object_id
-			WHERE colls.hire_date = CURRENT_DATE
-			OR colls.hire_date = CURRENT_DATE - 1;
+			ON cs.id = fm.object_id
+			WHERE cs.hire_date = CURRENT_DATE
+			OR cs.hire_date = CURRENT_DATE - 1;
 		`);
 
 		const result = newCollaborators.map((item) => ({

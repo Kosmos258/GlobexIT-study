@@ -23,7 +23,7 @@
     "no-multiple-empty-lines": "warn",
     "no-multi-spaces": "warn",
     "no-lonely-if": "warn",
-    "comma-dangle": ["warn", "always-multiline"],
+    "comma-dangle": ["off", "always-multiline"],
     "comma-spacing": ["warn", { "before": false, "after": true }],
     "line-comment-position": ["warn", { "ignorePattern": "." }],
     "lines-around-comment": ["warn", { "beforeBlockComment": true }],

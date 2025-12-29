@@ -14,7 +14,6 @@ interface IColl {
 }
 
 interface IError {
-	code: number;
 	message: string;
 }
 
@@ -72,7 +71,6 @@ function loadExcel(sFileUrl: string) {
 		return cells;
 	} catch (e) {
 		HttpError("loadExcel ", {
-			code: 500,
 			message: `Ошибка загрузки файла Excel: ${e.message}`,
 		});
 	}
@@ -118,7 +116,6 @@ function getCellValue(cells: any, row: number, col: number): string {
 		return strVal;
 	} catch (e) {
 		HttpError("getCellValue", {
-			code: 404,
 			message: `Ошибка получения значения ячейки [${row}, ${col}]: ${e.message}`,
 		});
 
@@ -132,7 +129,6 @@ function readExcel(sFileUrl: string) {
 
 		if (!_cells) {
 			HttpError("readExcel", {
-				code: 500,
 				message: "Не удалось получить таблицу: readExcel()",
 			});
 		}
@@ -163,7 +159,6 @@ function readExcel(sFileUrl: string) {
 				createOrUpdatePersonCard(personData);
 			} catch (err) {
 				HttpError("readExcel", {
-					code: 500,
 					message: `Ошибка в строке ${row}: ${err.message}`,
 				});
 			}
@@ -173,7 +168,6 @@ function readExcel(sFileUrl: string) {
 
 	} catch (e) {
 		HttpError("readExcel", {
-			code: 500,
 			message: `Ошибка чтения файла: ${e.message}`,
 		});
 	}
@@ -190,7 +184,6 @@ function findCollaborator(code: string, login: string): any {
 		return firstElem;
 	} catch (e) {
 		HttpError("findCollaborator ", {
-			code: 404,
 			message: "Не найден сотрудник",
 		});
 	}
@@ -204,7 +197,6 @@ function findPosition(collaboratorId: number): any {
 		return ArrayOptFirstElem(objArray);
 	} catch (e) {
 		HttpError("findPosition ", {
-			code: 404,
 			message: "Не найдена должность",
 		});
 	}
@@ -238,7 +230,6 @@ function createOrUpdateCollaborator(cardData: IColl) {
 		return collabDoc;
 	} catch (error) {
 		HttpError("createOrUpdateCollaborator ", {
-			code: 404,
 			message: "Не найден сотрудник",
 		});
 	}
@@ -280,7 +271,6 @@ function createOrUpdatePosition(
 		return positionId;
 	} catch (error) {
 		HttpError("findPosition ", {
-			code: 404,
 			message: "Не найдена должность",
 		});
 	}
@@ -304,7 +294,6 @@ function createOrUpdatePersonCard(cardData: IColl) {
 		}
 	} catch (e) {
 		HttpError("createOrUpdatePersonCard ", {
-			code: 500,
 			message: `Ошибка обработки карточки для ${cardData.login}`,
 		});
 	}
@@ -314,7 +303,6 @@ function main() {
 	try {
 		if (GLOBAL.FILE_IMPORT == undefined) {
 			HttpError("main ", {
-				code: 500,
 				message: "Ошибка: необходимо указать ссылку на файл в параметрах агента.",
 			});
 		}
@@ -345,7 +333,6 @@ function main() {
 	} catch (e) {
 		log(`Ошибка в main: ${e.message}`, "error");
 		HttpError("main ", {
-			code: 500,
 			message: `Выполнение прервано из-за ошибки: ${e.message}`,
 		});
 	}

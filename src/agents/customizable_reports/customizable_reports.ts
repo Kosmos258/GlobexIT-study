@@ -19,26 +19,24 @@ function selectAll<T>(query: string) {
 try {
 	const getSQL = selectAll<Pers>(`
         SELECT DISTINCT
-			c.id as employee_id,
-			c.code as employee_code,
-			c.fullname as employee_fullname,
-			c.email as employee_email,
-			c.position_name as employee_position,
-			c.position_parent_name as employee_department,
-			fm.person_fullname as manager_name,
+			cs.id as employee_id,
+			cs.code as employee_code,
+			cs.fullname as employee_fullname,
+			cs.email as employee_email,
+			cs.position_name as employee_position,
+			cs.position_parent_name as employee_department,
+			fms.person_fullname as manager_name,
 			manager.position_name as manager_position,
 			manager.email as manager_email
-		FROM dbo.collaborators c
-		INNER JOIN dbo.func_managers group_fm
-			ON c.id = group_fm.person_id
-			AND group_fm.catalog = 'group'
-			AND group_fm.object_id = ${FILTERED_GROUP}
-		INNER JOIN dbo.func_managers fm 
-			ON c.id = fm.object_id 
-			AND fm.catalog = 'collaborator'
-			AND fm.person_fullname IS NOT NULL
+		FROM dbo.collaborators cs
+		INNER JOIN dbo.group_collaborators gcs
+			ON cs.id = gcs.collaborator_id
+			AND gcs.group_id = ${FILTERED_GROUP}
+		INNER JOIN dbo.func_managers fms 
+			ON cs.id = fms.object_id 
+			AND fms.catalog = 'collaborator'
 		LEFT JOIN dbo.collaborators manager 
-			ON manager.id = fm.person_id;
+			ON manager.id = fms.person_id;
 `);
 
 	const aRes: any[] = [];

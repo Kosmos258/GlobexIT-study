@@ -1,0 +1,144 @@
+.users-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+
+  .users-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+
+    h1 {
+      font-size: 28px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .btn-refresh {
+      padding: 10px 20px;
+      background-color: #2196f3;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.3s;
+
+      &:hover {
+        background-color: #0b7dda;
+      }
+    }
+  }
+
+  .users-loading,
+  .users-empty {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+    font-size: 16px;
+  }
+
+  .users-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 20px;
+
+    .user-card {
+      background-color: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      transition: transform 0.2s, box-shadow 0.2s;
+
+      &:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+      }
+
+      .user-header {
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #f0f0f0;
+
+        h3 {
+          font-size: 20px;
+          font-weight: 600;
+          color: #333;
+          margin-bottom: 5px;
+        }
+
+        .username {
+          font-size: 14px;
+          color: #2196f3;
+          font-weight: 500;
+        }
+      }
+
+      .user-contacts,
+      .user-address,
+      .user-company {
+        margin-bottom: 18px;
+
+        .label {
+          display: block;
+          font-size: 12px;
+          font-weight: 600;
+          text-transform: uppercase;
+          color: #999;
+          margin-bottom: 8px;
+          letter-spacing: 0.5px;
+        }
+
+        .contact-item {
+          display: flex;
+          align-items: center;
+          margin-bottom: 8px;
+
+          .label {
+            display: inline;
+            margin-right: 8px;
+            margin-bottom: 0;
+          }
+
+          a {
+            color: #2196f3;
+            text-decoration: none;
+            font-size: 14px;
+
+            &:hover {
+              text-decoration: underline;
+            }
+          }
+        }
+
+        p {
+          margin: 4px 0;
+          font-size: 14px;
+          color: #555;
+          line-height: 1.5;
+        }
+      }
+
+      .user-company {
+        background-color: #f9f9f9;
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 0;
+
+        .company-name {
+          font-weight: 600;
+          color: #4caf50;
+          font-size: 15px;
+        }
+
+        .company-phrase {
+          font-style: italic;
+          color: #666;
+          font-size: 13px;
+        }
+      }
+    }
+  }
+}

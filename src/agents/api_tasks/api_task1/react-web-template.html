@@ -1,0 +1,20 @@
+<%
+/*<script>*/
+function GetParam(name) {
+    return tools_web.get_web_param( curParams, name, 0, 0 );
+}
+
+var sHtmlMainPage = LoadFileData(UrlToFilePath('x-local://wt/web/API/src/agents/api_tasks/api_task1/front/dist/index.html'))
+
+%>
+
+<script>
+	window._app_123456 = {
+        backendID: '<%=OptInt(GetParam("BACKEND_ID"))%>',
+		baseServerPath: '<%=global_settings.settings.portal_base_url%>'
+	}
+</script>
+
+<%
+	Response.Write(sHtmlMainPage)
+%>

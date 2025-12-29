@@ -1,0 +1,55 @@
+{
+  "biome": {
+    "indentWidth": 4,
+    "lineWidth": 80,
+    "semicolons": "always",
+    "json.indentWidth": 2,
+    "json.indentStyle": "space",
+    "javascript.bracketSpacing": true,
+    "indentStyle": "tab",
+    "css.enabled": false,
+    "graphql.enabled": false,
+    "quoteStyle": "single",
+    "trailingCommas": "all",
+    "arrowParentheses": "always",
+    "quoteProperties": "asNeeded",
+    "lineEnding": "lf",
+    "bracketSameLine": false,
+    "bracketSpacing": true
+  },
+  "malva": {
+    "printWidth": 80,
+    "useTabs": false,
+    "indentWidth": 2,
+    "lineBreak": "lf",
+    "hexCase": "lower",
+    "quotes": "alwaysDouble",
+    "operatorLinebreak": "after",
+    "blockSelectorLinebreak": "consistent",
+    "omitNumberLeadingZero": false,
+    "trailingComma": false,
+    "formatComments": false,
+    "alignComments": true,
+    "linebreakInPseudoParens": false,
+    "attrValueQuotes": "always",
+    "preferSingleLine": false,
+    "singleLineTopLevelDeclarations": false,
+    "selectorOverrideCommentDirective": "malva-selector-override",
+    "ignoreCommentDirective": "dp-css-ignore",
+    "ignoreFileCommentDirective": "dp-ignore-file"
+  },
+  "markdown": {},
+  "includes": ["src/**/*.{ts,tsx,js,jsx,json,md,css,scss,sass}", "**/*.json"],
+  "excludes": [
+    "**/node_modules",
+    "**/deployer",
+    "**/*-lock.json",
+    "**/*.lock",
+    "**/*.cjs"
+  ],
+  "plugins": [
+    "https://plugins.dprint.dev/biome-0.7.1.wasm",
+    "https://plugins.dprint.dev/g-plane/malva-v0.12.1.wasm",
+    "https://plugins.dprint.dev/markdown-0.18.0.wasm"
+  ]
+}

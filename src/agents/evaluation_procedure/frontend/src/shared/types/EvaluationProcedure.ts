@@ -1,30 +1,30 @@
-export type ProcedureType = {
-	procedure_id: string;
+export type QuestionnaireType = {
+	questionnaire_id: number;
+	assessment_plan_id: number;
+	expert_person_fullname: string;
+	overall: string;
+};
+export type ProcedureWithRelationsType = {
+	questionnaire_id: number;
+	expert_person_fullname: string;
+	overall: string;
+	assessment_plan_id: number;
+	plan_id: number;
+	person_fullname: string;
+	workflow_state_name: string;
+	assessment_appraise_id: number;
+	procedure_id: number;
 	name: string;
 	start_date: string;
 	end_date: string;
 };
 
-export type PlanType = {
-	plan_id: string;
-	person_fullname: string;
-	workflow_state_name: string;
-	assessment_appraise_id: string;
-};
-
-export type QuestionnaireType = {
-	questionnaire_id: string;
-	expert_person_fullname: string;
-	overall: string;
-	assessment_plan_id: string;
-};
-
 export type GroupedData = {
 	[procedureId: string]: {
-		procedure: ProcedureType;
+		procedure: ProcedureWithRelationsType;
 		employees: {
 			[employeeName: string]: {
-				plan: PlanType;
+				plan: ProcedureWithRelationsType;
 				questionnaires: QuestionnaireType[];
 			};
 		};

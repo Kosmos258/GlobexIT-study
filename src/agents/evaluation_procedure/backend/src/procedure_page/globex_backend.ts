@@ -8,19 +8,19 @@ import { IRequestBody } from "./types/RequestBody"; // .
 import { selectAll } from "./utils/query"; // .
 
 /* --- types --- */
-interface ISubdivision {
-	procedure_id: XmlElem<string>;
+interface IProcedureWithRelationsType {
+	procedure_id: XmlElem<number>;
 	name: XmlElem<string>;
 	start_date: XmlElem<string>;
 	end_date: XmlElem<string>;
-	plan_id: XmlElem<string>;
+	plan_id: XmlElem<number>;
 	person_fullname: XmlElem<string>;
 	workflow_state_name: XmlElem<string>;
-	questionnaire_id: XmlElem<string>;
+	questionnaire_id: XmlElem<number>;
 	expert_person_fullname: XmlElem<string>;
 	overall: XmlElem<string>;
-	assessment_appraise_id: XmlElem<string>;
-	assessment_plan_id: XmlElem<string>;
+	assessment_appraise_id: XmlElem<number>;
+	assessment_plan_id: XmlElem<number>;
 }
 
 interface IDateFormatResult {
@@ -28,23 +28,19 @@ interface IDateFormatResult {
 	error: number;
 }
 
-type ProcedureType = {
-	procedure_id: string;
+type ProcedureWithRelationsType = {
+	questionnaire_id: number;
+	expert_person_fullname: string;
+	overall: string;
+	assessment_plan_id: number;
+	plan_id: number;
+	person_fullname: string;
+	workflow_state_name: string;
+	assessment_appraise_id: number;
+	procedure_id: number;
 	name: string;
 	start_date: string;
 	end_date: string;
-};
-
-type PlanType = {
-	plan_id: string;
-	person_fullname: string;
-	workflow_state_name: string;
-};
-
-type QuestionnaireType = {
-	questionnaire_id: string;
-	expert_person_fullname: string;
-	overall: string;
 };
 
 /* --- utils --- */
@@ -63,93 +59,72 @@ const curUserId: number = DEV_MODE
 const DEBUG_MODE = tools_web.is_true(getParam("IS_DEBUG", undefined));
 
 /* --- logic --- */
-
-// Получаем все процедуры оценки
-function getProcedures(): ProcedureType[] {
+function getAllData(): ProcedureWithRelationsType[] {
 	try {
-		const procedure = selectAll<ISubdivision>(`
+		const data = selectAll<IProcedureWithRelationsType>(`
 			SELECT 
-				id procedure_id, 
-				name, 
-				start_date, 
-				end_date 
+				pas.id AS questionnaire_id,
+				pas.assessment_plan_id,  
+				pas.expert_person_fullname,
+				pas.overall,
+				ap.id AS plan_id,
+				ap.assessment_appraise_id,
+				ap.person_fullname, 
+				ap.workflow_state_name,
+				aa.id AS procedure_id, 
+				aa.name, 
+				aa.start_date, 
+				aa.end_date 
 			FROM 
-				dbo.assessment_appraises;
+				dbo.pas
+			LEFT JOIN 
+				dbo.assessment_plans ap ON pas.assessment_plan_id = ap.id
+			LEFT JOIN 
+				dbo.assessment_appraises aa ON ap.assessment_appraise_id = aa.id;
 		`);
 
-		return procedure.map((item) => {
-			const startDate = RValue(item.start_date);
-			const endDate = RValue(item.end_date);
+		return data.map((item) => {
+			const startDate = item.start_date.Value;
+			const endDate = item.end_date.Value;
 
-			const startDateFormatted: IDateFormatResult = tools.call_code_library_method(
-				"libSchedule",
-				"get_str_date_from_date",
-				[startDate],
-			);
+			let startDateFormatted = "";
+			let endDateFormatted = "";
 
-			const endDateFormatted: IDateFormatResult = tools.call_code_library_method(
-				"libSchedule",
-				"get_str_date_from_date",
-				[endDate],
-			);
+			if (startDate) {
+				const startResult: IDateFormatResult = tools.call_code_library_method(
+					"libSchedule",
+					"get_str_date_from_date",
+					[startDate],
+				);
+				startDateFormatted = startResult.date_str;
+			}
+
+			if (endDate) {
+				const endResult: IDateFormatResult = tools.call_code_library_method(
+					"libSchedule",
+					"get_str_date_from_date",
+					[endDate],
+				);
+				endDateFormatted = endResult.date_str;
+			}
 
 			return {
-				procedure_id: RValue(item.procedure_id),
-				name: RValue(item.name),
-				start_date: startDateFormatted.date_str,
-				end_date: endDateFormatted.date_str,
+				questionnaire_id: item.questionnaire_id.Value,
+				expert_person_fullname: item.expert_person_fullname.Value,
+				overall: item.overall.Value,
+				assessment_plan_id: item.assessment_plan_id.Value,
+				plan_id: item.plan_id.Value,
+				person_fullname: item.person_fullname.Value,
+				workflow_state_name: item.workflow_state_name.Value,
+				assessment_appraise_id: item.assessment_appraise_id.Value,
+				procedure_id: item.procedure_id.Value,
+				name: item.name.Value,
+				start_date: startDateFormatted,
+				end_date: endDateFormatted,
 			};
 		});
 	} catch (e) {
-		err("getProcedures", e);
-	}
-}
-
-// Получаем все планы оценки
-function getPlans(): PlanType[] {
-	try {
-		const plan = selectAll<ISubdivision>(`
-            SELECT 
-                id plan_id,
-                assessment_appraise_id,  
-                person_fullname, 
-                workflow_state_name
-            FROM 
-                dbo.assessment_plans;
-        `);
-
-		return plan.map((item) => ({
-			plan_id: RValue(item.plan_id),
-			assessment_appraise_id: RValue(item.assessment_appraise_id),
-			person_fullname: RValue(item.person_fullname),
-			workflow_state_name: RValue(item.workflow_state_name),
-		}));
-	} catch (e) {
-		err("getPlans", e);
-	}
-}
-
-// Получаем все анкеты
-function getQuestionnaires(): QuestionnaireType[] {
-	try {
-		const questionnaire = selectAll<ISubdivision>(`
-            SELECT 
-                id questionnaire_id,
-                assessment_plan_id,  
-                expert_person_fullname,
-                overall
-            FROM 
-                dbo.pas;
-        `);
-
-		return questionnaire.map((item) => ({
-			questionnaire_id: RValue(item.questionnaire_id),
-			assessment_plan_id: RValue(item.assessment_plan_id),
-			expert_person_fullname: RValue(item.expert_person_fullname),
-			overall: RValue(item.overall),
-		}));
-	} catch (e) {
-		err("getQuestionnaires", e);
+		err("getAllData", e);
 	}
 }
 
@@ -157,16 +132,8 @@ function handler(body: object, method: string) {
 	const response = { success: true, error: false, data: [] as unknown };
 
 	switch (method) {
-		case "getProcedures":
-			response.data = getProcedures();
-			break;
-
-		case "getPlans":
-			response.data = getPlans();
-			break;
-
-		case "getQuestionnaires":
-			response.data = getQuestionnaires();
+		case "getAllData":
+			response.data = getAllData();
 			break;
 
 		default:

@@ -1,51 +1,73 @@
-import { getProcedures, getPlans, getQuestionnaires } from '../../api/api';
+import { getAllData } from '../../api/api';
 import {
-	ProcedureType,
-	PlanType,
-	QuestionnaireType,
+	ProcedureWithRelationsType,
 	GroupedData,
+	QuestionnaireType,
 } from '../types/EvaluationProcedure';
 
 export const fetchAndGroupData = async (): Promise<GroupedData> => {
-	const [proceduresData, plansData, questionnairesData] = await Promise.all([
-		getProcedures(),
-		getPlans(),
-		getQuestionnaires(),
-	]);
+	const data: ProcedureWithRelationsType[] = await getAllData();
 
 	const grouped: GroupedData = {};
 
-	proceduresData.forEach((procedure: ProcedureType) => {
-		const procedurePlans = plansData.filter(
-			(plan: PlanType) =>
-				plan.assessment_appraise_id === procedure.procedure_id,
-		);
+	data.forEach((item) => {
+		const procedureId = item.procedure_id;
+		const employeeName = item.person_fullname;
 
-		if (procedurePlans.length === 0) return;
+		// Пропускаем записи без процедуры
+		if (!procedureId) return;
 
-		grouped[procedure.procedure_id] = {
-			procedure,
-			employees: {},
-		};
+		// Создаем процедуру, если её ещё нет
+		if (!grouped[procedureId]) {
+			grouped[procedureId] = {
+				procedure: {
+					procedure_id: item.procedure_id,
+					name: item.name,
+					start_date: item.start_date,
+					end_date: item.end_date,
+				} as ProcedureWithRelationsType,
+				employees: {},
+			};
+		}
 
-		procedurePlans.forEach((plan: PlanType) => {
-			const planQuestionnaires = questionnairesData.filter(
-				(q: QuestionnaireType) => q.assessment_plan_id === plan.plan_id,
+		// Пропускаем записи без информации о сотруднике
+		if (!employeeName) return;
+
+		// Создаем сотрудника, если его ещё нет
+		if (!grouped[procedureId].employees[employeeName]) {
+			grouped[procedureId].employees[employeeName] = {
+				plan: {
+					plan_id: item.plan_id,
+					assessment_appraise_id: item.assessment_appraise_id,
+					person_fullname: item.person_fullname,
+					workflow_state_name: item.workflow_state_name,
+				} as ProcedureWithRelationsType,
+				questionnaires: [],
+			};
+		}
+
+		// Добавляем анкету, если она есть
+		if (item.questionnaire_id) {
+			const questionnaire: QuestionnaireType = {
+				questionnaire_id: item.questionnaire_id,
+				assessment_plan_id: item.assessment_plan_id,
+				expert_person_fullname: item.expert_person_fullname,
+				overall: item.overall,
+			};
+
+			// Проверяем, чтобы не добавлять дубликаты анкет
+			const exists = grouped[procedureId].employees[
+				employeeName
+			].questionnaires.some(
+				(q) => q.questionnaire_id === questionnaire.questionnaire_id,
 			);
 
-			const employeeName = plan.person_fullname;
-
-			if (!grouped[procedure.procedure_id].employees[employeeName]) {
-				grouped[procedure.procedure_id].employees[employeeName] = {
-					plan,
-					questionnaires: [],
-				};
+			if (!exists) {
+				grouped[procedureId].employees[
+					employeeName
+				].questionnaires.push(questionnaire);
 			}
-
-			grouped[procedure.procedure_id].employees[
-				employeeName
-			].questionnaires.push(...planQuestionnaires);
-		});
+		}
 	});
 
 	return grouped;
